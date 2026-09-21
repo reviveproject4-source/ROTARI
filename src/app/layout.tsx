@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TenantProvider } from "@/lib/tenant-context";
@@ -7,6 +7,12 @@ import { SaasShell } from "@/components/saas-shell";
 export const metadata: Metadata = {
   title: "ROTARI SaaS - Platform Multi-Tenant POS & Retention CRM",
   description: "Platform Enterprise Multi-Tenant POS & Retention CRM Terintegrasi",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
