@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LoginModal } from "./login-modal";
+import { Menu, X as CloseIcon } from "lucide-react";
 
 export function SaasShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,11 +43,17 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Owner Nav Items (Termasuk Super Admin & Demo Request)
   const ownerNavItems = [
@@ -86,9 +93,19 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         onClose={() => setIsLoginModalOpen(false)} 
       />
 
-      {/* 1. Left Sidebar Navigation (Modern SaaS Shell) */}
-      <aside className={`flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 z-30 ${
-        sidebarCollapsed ? "w-20" : "w-64"
+      {/* Mobile Drawer Overlay Backdrop */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+        />
+      )}
+
+      {/* 1. Left Sidebar Navigation (Desktop & Mobile Drawer) */}
+      <aside className={`fixed inset-y-0 left-0 z-50 lg:static flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 ${
+        mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+      } ${
+        sidebarCollapsed ? "lg:w-20" : "lg:w-64"
       }`}>
         
         {/* Brand Header */}
@@ -106,7 +123,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
             
-            {!sidebarCollapsed && (
+            {(!sidebarCollapsed || mobileMenuOpen) && (
               <div className="truncate">
                 <h1 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">
                   {tenant.business_name}
@@ -117,6 +134,13 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
+
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
+          >
+            <CloseIcon className="w-5 h-5" />
+          </button>
         </div>
 
         {/* User Role Badge & Authenticated User Switcher */}
@@ -214,53 +238,63 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-6 flex items-center justify-between z-20">
+        <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 sm:px-6 flex items-center justify-between z-20">
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Mobile Hamburger Drawer Trigger */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="Open Mobile Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Desktop Sidebar Collapse Toggle */}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="hidden lg:flex p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <Layers className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
-              <Building2 className="w-4 h-4 text-sky-600" />
-              <span>Outlet:</span>
-              <strong className="text-slate-900 dark:text-slate-100">{tenant.business_name}</strong>
+            <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-500 truncate max-w-[140px] sm:max-w-xs">
+              <Building2 className="w-4 h-4 text-sky-600 flex-shrink-0" />
+              <strong className="text-slate-900 dark:text-slate-100 truncate">{tenant.business_name}</strong>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             
             {/* Trial Status Badge */}
             {tenant.subscription_status === 'active' ? (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <Sparkles className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                Langganan Aktif
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <Sparkles className="w-3.5 h-3.5 mr-1 text-emerald-500" />
+                <span className="hidden sm:inline">Langganan </span>Aktif
               </span>
             ) : isTrialExpired ? (
               <Link 
                 href="/super-admin"
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 animate-pulse"
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-black bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 animate-pulse"
               >
-                <Clock className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
-                Trial Expired (Terkunci)
+                <Clock className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                Trial Expired
               </Link>
             ) : (
               <Link
                 href="/super-admin"
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 hover:bg-amber-200 transition"
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 hover:bg-amber-200 transition"
               >
-                <Clock className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
-                Trial: Sisa {daysRemainingInTrial} Hari
+                <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                Trial: {daysRemainingInTrial} Hari
               </Link>
             )}
 
             {mounted && (
               <button
                 onClick={toggleTheme}
-                className="md:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                aria-label="Toggle Theme Mode"
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
               >
                 {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
               </button>
@@ -269,8 +303,8 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
 
         </header>
 
-        {/* Scrollable Main Content Canvas */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 relative">
+        {/* Scrollable Main Content Canvas (pb-24 for Sticky Mobile Bottom Nav) */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 bg-slate-50 dark:bg-slate-950 relative">
           
           {/* Trial Expiry Lock Screen (If Trial Expired and not on /super-admin or /demo-request) */}
           {isTrialExpired && pathname !== '/super-admin' && pathname !== '/demo-request' ? (
@@ -300,6 +334,31 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
           )}
 
         </main>
+
+        {/* Sticky Mobile Bottom Navigation Bar for Smartphone Screens */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-lg">
+          {currentNavItems.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
+                  isActive
+                    ? currentUser.role === "owner"
+                      ? "text-sky-600 dark:text-sky-400 font-extrabold"
+                      : "text-emerald-600 dark:text-emerald-400 font-extrabold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium"
+                }`}
+              >
+                <Icon className={`w-5 h-5 mb-0.5 ${isActive ? (currentUser.role === 'owner' ? 'text-sky-600' : 'text-emerald-600') : ''}`} />
+                <span className="text-[10px] tracking-tight truncate max-w-[65px]">{item.label.split(" ")[0]}</span>
+              </Link>
+            );
+          })}
+        </div>
 
       </div>
 

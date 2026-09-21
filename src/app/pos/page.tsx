@@ -25,7 +25,8 @@ import {
   DollarSign,
   Tag,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Layers
 } from "lucide-react";
 
 export default function CashierMainDashboardPage() {
@@ -69,6 +70,7 @@ export default function CashierMainDashboardPage() {
 
   // Filter Status Transaksi
   const [txFilterStatus, setTxFilterStatus] = useState<'all' | 'baru' | 'terlambat' | 'harus_selesai'>('all');
+  const [mobilePosTab, setMobilePosTab] = useState<'catalog' | 'checkout'>('catalog');
 
   const filteredItems = productsServices.filter((ps) => {
     const matchesSearch = ps.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -405,11 +407,41 @@ Terima kasih atas kunjungan Anda!`;
 
       </div>
 
+      {/* Mobile Tab Switcher for Smartphone Screens */}
+      <div className="flex lg:hidden items-center p-1.5 bg-slate-200/70 dark:bg-slate-800/80 rounded-2xl border border-slate-300 dark:border-slate-700 font-extrabold text-xs">
+        <button
+          onClick={() => setMobilePosTab('catalog')}
+          className={`flex-1 py-2.5 rounded-xl flex items-center justify-center space-x-1.5 transition ${
+            mobilePosTab === 'catalog'
+              ? 'bg-white dark:bg-slate-900 text-sky-600 shadow-md font-black'
+              : 'text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>1. Pilih Katalog</span>
+        </button>
+
+        <button
+          onClick={() => setMobilePosTab('checkout')}
+          className={`flex-1 py-2.5 rounded-xl flex items-center justify-center space-x-1.5 transition relative ${
+            mobilePosTab === 'checkout'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 shadow-md font-black'
+              : 'text-slate-600 dark:text-slate-400'
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          <span>2. Form Nota ({cart.length})</span>
+          {cart.length > 0 && (
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping absolute top-2 right-4" />
+          )}
+        </button>
+      </div>
+
       {/* 4. Form Buat Transaksi POS Kasir (POLOS TULIS MANUAL DISKON & DP) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left 7 cols: Catalog Selection */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className={`${mobilePosTab === 'catalog' ? 'block' : 'hidden lg:block'} lg:col-span-7 space-y-6`}>
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base">Pilih Produk Ritel &amp; Layanan Jasa</h2>
@@ -479,7 +511,7 @@ Terima kasih atas kunjungan Anda!`;
         </div>
 
         {/* Right 5 cols: Form Buat Nota Transaksi (POLOS MANUAL DISKON & DP) */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className={`${mobilePosTab === 'checkout' ? 'block' : 'hidden lg:block'} lg:col-span-5 space-y-6`}>
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
