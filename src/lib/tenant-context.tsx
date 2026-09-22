@@ -36,6 +36,7 @@ interface TenantContextType {
   updateTenant: (updated: Partial<Tenant>) => void;
   setCurrentUserRole: (role: Role) => void;
   setCurrentUserWithPin: (userId: string, pin: string) => boolean;
+  loginWithCredentials: (identifier: string, pin: string) => { success: boolean; user?: User };
   updateUserPin: (userId: string, newPin: string) => void;
   toggleAttendance: (userId: string) => void;
   addUser: (user: Omit<User, "id" | "tenant_id" | "is_active">) => void;
@@ -226,18 +227,35 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser(targetUser);
   };
 
-  const setCurrentUserWithPin = (userId: string, pin: string): boolean => {
-    const targetUser = users.find((u) => u.id === userId);
-    if (!targetUser) return false;
-    if (targetUser.pin_code === pin) {
-      setCurrentUser(targetUser);
+  const loginWithCredentials = (identifier: string, pin: string): { success: boolean; user?: User } => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPin = pin.trim();
+
+    const matchedUser = users.find((u) => {
+      const matchesPin = u.pin_code === cleanPin;
+      if (!cleanId) return matchesPin;
+      const matchesId = 
+        (u.email && u.email.toLowerCase().includes(cleanId)) || 
+        (u.name && u.name.toLowerCase().includes(cleanId)) || 
+        u.id.toLowerCase() === cleanId ||
+        u.role.toLowerCase() === cleanId;
+      return matchesId && matchesPin;
+    });
+
+    if (matchedUser) {
+      setCurrentUser(matchedUser);
       setIsAuthenticated(true);
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("rotari_auth_user_id", targetUser.id);
+        sessionStorage.setItem("rotari_auth_user_id", matchedUser.id);
       }
-      return true;
+      return { success: true, user: matchedUser };
     }
-    return false;
+
+    return { success: false };
+  };
+
+  const setCurrentUserWithPin = (userId: string, pin: string): boolean => {
+    return loginWithCredentials(userId, pin).success;
   };
 
   const logout = () => {
@@ -492,6 +510,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         updateTenant,
         setCurrentUserRole,
         setCurrentUserWithPin,
+        loginWithCredentials,
         updateUserPin,
         toggleAttendance,
         addUser,

@@ -58,14 +58,13 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Owner Nav Items (Termasuk Super Admin & Demo Request)
+  // Owner Nav Items (Operasional Outlet Owner)
   const ownerNavItems = [
     { href: "/", label: "Dashboard Utama", icon: LayoutDashboard, badge: null },
     { href: "/employees", label: "Data Pegawai", icon: Users, badge: null },
     { href: "/inventory", label: "Inventory & Stok", icon: Package, badge: null },
     { href: "/expenses", label: "Biaya Operasional", icon: DollarSign, badge: null },
     { href: "/crm", label: "CRM Laporan", icon: MessageSquareText, badge: "Laporan" },
-    { href: "/super-admin", label: "Super Admin", icon: ShieldCheck, badge: "Platform" },
     { href: "/demo-request", label: "Form Demo", icon: Sparkles, badge: "Public" },
     { href: "/settings", label: "Pengaturan Outlet", icon: SettingsIcon, badge: null },
   ];

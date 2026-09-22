@@ -69,21 +69,29 @@ export default function SuperAdminDashboardPage() {
         <div>
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-1 rounded-md text-xs font-black bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center gap-1.5 uppercase">
-              <ShieldCheck className="w-4 h-4 text-purple-600" /> Platform Owner &amp; Super Admin
+              <ShieldCheck className="w-4 h-4 text-purple-600" /> Platform Super Admin (Terpisah)
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 mt-1">
-            Dashboard Super Admin SaaS ROTARI
+            Portal Super Admin SaaS ROTARI (Aktivasi Lisensi &amp; Onboarding Tenant)
           </h1>
         </div>
 
-        <Link
-          href="/demo-request"
-          className="px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Buka Form Demo Publik</span>
-        </Link>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            href="/demo-request"
+            className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Form Demo Publik</span>
+          </Link>
+          <Link
+            href="/"
+            className="px-4 py-2.5 rounded-2xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition"
+          >
+            Kembali ke App
+          </Link>
+        </div>
       </div>
 
       {/* 4 Super Admin Key Metrics */}
