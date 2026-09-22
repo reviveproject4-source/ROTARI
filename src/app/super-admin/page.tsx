@@ -1,7 +1,7 @@
 "use client";
 
 import { useTenant } from "@/lib/tenant-context";
-import { openWhatsAppChat } from "@/lib/whatsapp";
+import { WhatsAppSendModal } from "@/components/whatsapp-send-modal";
 import { 
   ShieldCheck, 
   Users, 
@@ -40,6 +40,13 @@ export default function SuperAdminDashboardPage() {
   const [leadSearch, setLeadSearch] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'new' | 'contacted' | 'converted'>('all');
   const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
+
+  const [waModalData, setWaModalData] = useState<{ isOpen: boolean; phone: string; message: string; recipientName: string }>({
+    isOpen: false,
+    phone: "",
+    message: "",
+    recipientName: "",
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -283,9 +290,12 @@ export default function SuperAdminDashboardPage() {
                           <button
                             onClick={() => {
                               const msg = `Halo Kak ${lead.name} dari ${lead.business_name}, terima kasih telah mendaftar Uji Coba Demo SaaS ROTARI! Kapan waktu yang tepat untuk kita jadwalkan demo online?`;
-                              setWaOpenedStatus(true);
-                              setTimeout(() => setWaOpenedStatus(false), 3500);
-                              openWhatsAppChat(lead.phone, msg);
+                              setWaModalData({
+                                isOpen: true,
+                                phone: lead.phone,
+                                message: msg,
+                                recipientName: `${lead.name} (${lead.business_name})`,
+                              });
                             }}
                             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
                           >
@@ -403,6 +413,20 @@ export default function SuperAdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Send Confirmation Modal */}
+      <WhatsAppSendModal
+        isOpen={waModalData.isOpen}
+        onClose={() => setWaModalData((prev) => ({ ...prev, isOpen: false }))}
+        phone={waModalData.phone}
+        message={waModalData.message}
+        recipientName={waModalData.recipientName}
+        title="Konfirmasi Pesan Demo Super Admin"
+        onSuccessOpened={() => {
+          setWaOpenedStatus(true);
+          setTimeout(() => setWaOpenedStatus(false), 3500);
+        }}
+      />
 
     </div>
   );

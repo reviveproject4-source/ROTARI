@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
-import { openWhatsAppChat } from "@/lib/whatsapp";
+import { WhatsAppSendModal } from "@/components/whatsapp-send-modal";
 import { ProductService, TransactionItem } from "@/types";
 import { 
   ShoppingCart, 
@@ -63,6 +63,12 @@ export default function CashierMainDashboardPage() {
   const [dpAmountManual, setDpAmountManual] = useState<number | "">("");
   const [lastTxReceipt, setLastTxReceipt] = useState<any | null>(null);
   const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
+  const [waModalData, setWaModalData] = useState<{ isOpen: boolean; phone: string; message: string; recipientName: string }>({
+    isOpen: false,
+    phone: "",
+    message: "",
+    recipientName: "",
+  });
 
   // Modals for Clickable Header Metrics & Sections
   const [showOmsetModal, setShowOmsetModal] = useState(false);
@@ -243,18 +249,24 @@ ${tenant.terms_and_conditions}
 Terima kasih atas kunjungan Anda!`;
 
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
-    setWaOpenedStatus(true);
-    setTimeout(() => setWaOpenedStatus(false), 3500);
-    openWhatsAppChat(phone, text);
+    setWaModalData({
+      isOpen: true,
+      phone,
+      message: text,
+      recipientName: tx.customer_name || "Pelanggan Toko",
+    });
   };
 
   const handleSendPickUpWa = (tx: any) => {
     const sisa = tx.total_amount - tx.paid_amount;
     const text = `Halo Kak ${tx.customer_name}, pengerjaan barang kesayangan Anda (${tx.item_notes || 'Layanan Toko'}) sudah *SIAP DIAMBIL* di ${tenant.business_name}.\n\n*Alamat Toko:* ${tenant.address}\n${sisa > 0 ? `*Sisa Pelunasan:* Rp ${sisa.toLocaleString("id-ID")}\n` : "*Status:* LUNAS\n"}\nKami tunggu kedatangannya ya kak!`;
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
-    setWaOpenedStatus(true);
-    setTimeout(() => setWaOpenedStatus(false), 3500);
-    openWhatsAppChat(phone, text);
+    setWaModalData({
+      isOpen: true,
+      phone,
+      message: text,
+      recipientName: tx.customer_name || "Pelanggan Toko",
+    });
   };
 
   const todayFormatted = new Date().toLocaleDateString("id-ID", {
@@ -990,6 +1002,20 @@ Terima kasih atas kunjungan Anda!`;
           </div>
         </div>
       )}
+
+      {/* WhatsApp Send Confirmation Modal */}
+      <WhatsAppSendModal
+        isOpen={waModalData.isOpen}
+        onClose={() => setWaModalData((prev) => ({ ...prev, isOpen: false }))}
+        phone={waModalData.phone}
+        message={waModalData.message}
+        recipientName={waModalData.recipientName}
+        title="Konfirmasi Kirim Nota / Reminder WA"
+        onSuccessOpened={() => {
+          setWaOpenedStatus(true);
+          setTimeout(() => setWaOpenedStatus(false), 3500);
+        }}
+      />
 
     </div>
   );

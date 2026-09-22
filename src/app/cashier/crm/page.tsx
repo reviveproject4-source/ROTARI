@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
-import { openWhatsAppChat } from "@/lib/whatsapp";
+import { WhatsAppSendModal } from "@/components/whatsapp-send-modal";
 import { 
   MessageSquareText, 
   Send, 
@@ -28,13 +28,26 @@ export default function CashierCrmPage() {
   // State for Broadcast Form in Cashier CRM
   const [selectedPromoId, setSelectedPromoId] = useState<string>(activeOwnerPromos[0]?.id || "");
   const [customPromoMessage, setCustomPromoMessage] = useState<string>(
-    activeOwnerPromos[0]?.promo_message || "Halo Kak! Ada promo spesial khusus hari ini di outlet kami!"
+    activeOwnerPromos[0]?.promo_message || "Halo Kak, dapatkan promo spesial potongan 15% untuk layanan sepatu & barang kesayangan Anda pekan ini di ROTARI!"
   );
-  const [attachedPhotoUrl, setAttachedPhotoUrl] = useState<string>("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(customers[0]?.id || "");
+  const [selectedTargetCustomerId, setSelectedTargetCustomerId] = useState<string>(customers[0]?.id || "");
+  const [promoPhotoPreview, setPromoPhotoPreview] = useState<string | null>(null);
   const [broadcastSuccess, setBroadcastSuccess] = useState<boolean>(false);
 
-  const selectedTargetCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0];
+  const [waModalData, setWaModalData] = useState<{ 
+    isOpen: boolean; 
+    phone: string; 
+    message: string; 
+    recipientName: string;
+    onConfirmLog?: () => void;
+  }>({
+    isOpen: false,
+    phone: "",
+    message: "",
+    recipientName: "",
+  });
+
+  const selectedTargetCustomer = customers.find((c) => c.id === selectedTargetCustomerId) || customers[0];
 
   // Handle Photo Attachment (Default Galeri / Kamera HP)
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +55,7 @@ export default function CashierCrmPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAttachedPhotoUrl(reader.result as string);
+        setPromoPhotoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -60,41 +73,47 @@ export default function CashierCrmPage() {
 
     const finalMessage = `${customPromoMessage}\n\n----------------------------\n*Outlet:* ${tenant.business_name}\n*Alamat:* ${tenant.address}`;
 
-    // Record log to Owner CRM report
-    addCrmLog({
-      customer_id: selectedTargetCustomer.id,
-      customer_name: selectedTargetCustomer.name,
-      customer_phone: selectedTargetCustomer.phone,
-      cashier_name: currentUser.name,
-      type: selectedTargetCustomer.churn_status === "lost_90" ? "retention_90" : "retention_45",
-      message_content: finalMessage,
+    setWaModalData({
+      isOpen: true,
+      phone: selectedTargetCustomer.phone,
+      message: finalMessage,
+      recipientName: selectedTargetCustomer.name,
+      onConfirmLog: () => {
+        addCrmLog({
+          customer_id: selectedTargetCustomer.id,
+          customer_name: selectedTargetCustomer.name,
+          customer_phone: selectedTargetCustomer.phone,
+          cashier_name: currentUser.name,
+          type: selectedTargetCustomer.churn_status === "lost_90" ? "retention_90" : "retention_45",
+          message_content: finalMessage,
+        });
+        setBroadcastSuccess(true);
+        setTimeout(() => setBroadcastSuccess(false), 3500);
+      }
     });
-
-    setBroadcastSuccess(true);
-    setTimeout(() => setBroadcastSuccess(false), 3500);
-
-    // Open WhatsApp deep link directly on mobile/desktop
-    openWhatsAppChat(selectedTargetCustomer.phone, finalMessage);
   };
 
   const handleSendWaReminder = (cust: any, type: 'retention_45' | 'retention_90') => {
     const message = customPromoMessage || `Halo Kak ${cust.name}, kami rindu pelayanan sepatu/barang kesayangan Anda di *${tenant.business_name}*!\n\nKhusus hari ini, dapatkan *Voucher Diskon Special Retensi Pelanggan Setia*!\n\nAlamat Toko: ${tenant.address}\n\nBalas pesan ini untuk klaim voucher promo Anda!`;
 
-    // Record log to Owner CRM report
-    addCrmLog({
-      customer_id: cust.id,
-      customer_name: cust.name,
-      customer_phone: cust.phone,
-      cashier_name: currentUser.name,
-      type,
-      message_content: message,
+    setWaModalData({
+      isOpen: true,
+      phone: cust.phone,
+      message: message,
+      recipientName: cust.name,
+      onConfirmLog: () => {
+        addCrmLog({
+          customer_id: cust.id,
+          customer_name: cust.name,
+          customer_phone: cust.phone,
+          cashier_name: currentUser.name,
+          type,
+          message_content: message,
+        });
+        setBroadcastSuccess(true);
+        setTimeout(() => setBroadcastSuccess(false), 3500);
+      }
     });
-
-    setBroadcastSuccess(true);
-    setTimeout(() => setBroadcastSuccess(false), 3500);
-
-    // Open WhatsApp deep link directly on mobile/desktop
-    openWhatsAppChat(cust.phone, message);
   };
 
   return (
@@ -173,8 +192,8 @@ export default function CashierCrmPage() {
               <UserCheck className="w-4 h-4 text-indigo-600" /> Pilih Nama Pelanggan Tujuan *
             </label>
             <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              value={selectedTargetCustomerId}
+              onChange={(e) => setSelectedTargetCustomerId(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-bold shadow-sm"
             >
               {customers.map((c) => (
@@ -205,9 +224,9 @@ export default function CashierCrmPage() {
               Lampirkan Foto Promo (Default Galeri &amp; Kamera HP)
             </label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              {attachedPhotoUrl ? (
+              {promoPhotoPreview ? (
                 <img
-                  src={attachedPhotoUrl}
+                  src={promoPhotoPreview}
                   alt="Promo Attachment"
                   className="w-24 h-24 rounded-2xl object-cover border-2 border-indigo-400 shadow-sm"
                 />
@@ -220,7 +239,7 @@ export default function CashierCrmPage() {
               <div className="space-y-2 flex-1 w-full">
                 <label className="flex items-center justify-center space-x-2 px-4 py-3 rounded-2xl border-2 border-dashed border-indigo-400 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/40 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold cursor-pointer transition">
                   <Camera className="w-4 h-4 text-indigo-600" />
-                  <span>{attachedPhotoUrl ? "Foto Berhasil Dilampirkan!" : "Pilih Foto dari Galeri / Kamera HP"}</span>
+                  <span>{promoPhotoPreview ? "Foto Berhasil Dilampirkan!" : "Pilih Foto dari Galeri / Kamera HP"}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -326,6 +345,21 @@ export default function CashierCrmPage() {
           )}
         </div>
       </div>
+
+      {/* WhatsApp Send Confirmation Modal */}
+      <WhatsAppSendModal
+        isOpen={waModalData.isOpen}
+        onClose={() => setWaModalData((prev) => ({ ...prev, isOpen: false }))}
+        phone={waModalData.phone}
+        message={waModalData.message}
+        recipientName={waModalData.recipientName}
+        title="Konfirmasi Pesan Promo / Reminder WA"
+        onSuccessOpened={() => {
+          if (waModalData.onConfirmLog) {
+            waModalData.onConfirmLog();
+          }
+        }}
+      />
     </div>
   );
 }

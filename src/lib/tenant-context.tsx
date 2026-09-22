@@ -2,7 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, Role, WorkStatus, PromoInstruction, ProspectLead } from "@/types";
-import { initialTenant, initialUsers, initialProductsServices, initialExpenses, initialCustomers, initialTransactions, initialCrmLogs, initialPromoInstructions, initialProspectLeads } from "./initial-data";
+import { 
+  initialTenant, 
+  initialUsers, 
+  initialProductsServices, 
+  initialExpenses, 
+  initialCustomers, 
+  initialTransactions, 
+  initialCrmLogs, 
+  initialPromoInstructions, 
+  initialProspectLeads,
+  SUPER_ADMIN_USER
+} from "./initial-data";
 
 interface TenantContextType {
   tenant: Tenant;
@@ -70,52 +81,111 @@ interface TenantContextType {
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [tenant, setTenant] = useState<Tenant>(initialTenant);
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [currentUser, setCurrentUser] = useState<User>(initialUsers[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [productsServices, setProductsServices] = useState<ProductService[]>(initialProductsServices);
-  const [expenses, setExpenses] = useState<OperationalExpense[]>(initialExpenses);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [crmLogs, setCrmLogs] = useState<CrmLog[]>(initialCrmLogs);
-  const [promoInstructions, setPromoInstructions] = useState<PromoInstruction[]>(initialPromoInstructions);
-  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(initialProspectLeads);
+// Helper safe JSON parse for SessionStorage
+function getStorageItem<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
+function setStorageItem<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.error("Failed to save to sessionStorage:", err);
+  }
+}
+
+export function TenantProvider({ children }: { children: React.ReactNode }) {
+  // Multi-Tenant Registries (Memory & SessionStorage)
+  const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItem("rotari_tenants_registry", [initialTenant]));
+  const [activeTenantId, setActiveTenantId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("rotari_active_tenant_id") || "tenant-001";
+    }
+    return "tenant-001";
+  });
+
+  const [users, setUsers] = useState<User[]>(() => getStorageItem("rotari_users_registry", initialUsers));
+  const [currentUser, setCurrentUser] = useState<User>(() => initialUsers[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Repositories
+  const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItem("rotari_products_registry", initialProductsServices));
+  const [allExpenses, setAllExpenses] = useState<OperationalExpense[]>(() => getStorageItem("rotari_expenses_registry", initialExpenses));
+  const [allCustomers, setAllCustomers] = useState<Customer[]>(() => getStorageItem("rotari_customers_registry", initialCustomers));
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => getStorageItem("rotari_transactions_registry", initialTransactions));
+  const [allCrmLogs, setAllCrmLogs] = useState<CrmLog[]>(() => getStorageItem("rotari_crm_logs_registry", initialCrmLogs));
+  const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItem("rotari_promo_instructions_registry", initialPromoInstructions));
+  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItem("rotari_prospect_leads_registry", initialProspectLeads));
+
+  // 1. Restore Active Session on Mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
       if (savedUserId) {
-        const u = initialUsers.find((x) => x.id === savedUserId);
-        if (u) {
-          setCurrentUser(u);
+        if (savedUserId === SUPER_ADMIN_USER.id) {
+          setCurrentUser(SUPER_ADMIN_USER);
           setIsAuthenticated(true);
+        } else {
+          const matchedUser = users.find((u) => u.id === savedUserId);
+          if (matchedUser) {
+            setCurrentUser(matchedUser);
+            setActiveTenantId(matchedUser.tenant_id);
+            setIsAuthenticated(true);
+          }
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 14-Day Trial Calculations
-  const trialEndsDate = new Date(tenant.trial_ends_at || Date.now() + 14 * 86400000);
+  // Sync registries to SessionStorage
+  useEffect(() => { setStorageItem("rotari_tenants_registry", tenants); }, [tenants]);
+  useEffect(() => { setStorageItem("rotari_users_registry", users); }, [users]);
+  useEffect(() => { setStorageItem("rotari_products_registry", allProductsServices); }, [allProductsServices]);
+  useEffect(() => { setStorageItem("rotari_expenses_registry", allExpenses); }, [allExpenses]);
+  useEffect(() => { setStorageItem("rotari_customers_registry", allCustomers); }, [allCustomers]);
+  useEffect(() => { setStorageItem("rotari_transactions_registry", allTransactions); }, [allTransactions]);
+  useEffect(() => { setStorageItem("rotari_crm_logs_registry", allCrmLogs); }, [allCrmLogs]);
+  useEffect(() => { setStorageItem("rotari_promo_instructions_registry", allPromoInstructions); }, [allPromoInstructions]);
+  useEffect(() => { setStorageItem("rotari_prospect_leads_registry", prospectLeads); }, [prospectLeads]);
+
+  // Derived Active Tenant
+  const activeTenant = tenants.find((t) => t.id === activeTenantId) || tenants[0] || initialTenant;
+
+  // Scoped Collections by Active Tenant
+  const scopedUsers = users.filter((u) => u.tenant_id === activeTenant.id);
+  const productsServices = allProductsServices.filter((p) => p.tenant_id === activeTenant.id);
+  const expenses = allExpenses.filter((e) => e.tenant_id === activeTenant.id);
+  const customers = allCustomers.filter((c) => c.tenant_id === activeTenant.id);
+  const transactions = allTransactions.filter((t) => t.tenant_id === activeTenant.id);
+  const crmLogs = allCrmLogs.filter((l) => l.tenant_id === activeTenant.id);
+  const promoInstructions = allPromoInstructions.filter((p) => p.tenant_id === activeTenant.id);
+
+  // 14-Day Trial Calculations for Active Tenant
+  const trialEndsDate = new Date(activeTenant.trial_ends_at || Date.now() + 14 * 86400000);
   const diffTime = trialEndsDate.getTime() - Date.now();
   const daysRemainingInTrial = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  const isTrialExpired = tenant.subscription_status === "expired" || (tenant.subscription_status === "trial" && daysRemainingInTrial <= 0);
+  const isTrialExpired = activeTenant.subscription_status === "expired" || (activeTenant.subscription_status === "trial" && daysRemainingInTrial <= 0);
 
   const extendTrial = (daysToAdd: number) => {
     const newExpiry = new Date(trialEndsDate.getTime() + daysToAdd * 86400000).toISOString();
-    setTenant((prev) => ({
-      ...prev,
-      trial_ends_at: newExpiry,
-      subscription_status: "trial",
-    }));
+    setTenants((prev) =>
+      prev.map((t) => (t.id === activeTenant.id ? { ...t, trial_ends_at: newExpiry, subscription_status: "trial" } : t))
+    );
   };
 
   const activateSubscription = () => {
-    setTenant((prev) => ({
-      ...prev,
-      subscription_status: "active",
-    }));
+    setTenants((prev) =>
+      prev.map((t) => (t.id === activeTenant.id ? { ...t, subscription_status: "active" } : t))
+    );
   };
 
   // Bulk Import for Owner
@@ -125,11 +195,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const newItems: ProductService[] = items.map((item, idx) => ({
       ...item,
       id: `ps-imp-${Date.now()}-${idx}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       is_dead_stock: false,
       last_sold_at: new Date().toISOString(),
     }));
-    setProductsServices((prev) => [...newItems, ...prev]);
+    setAllProductsServices((prev) => [...newItems, ...prev]);
     return newItems.length;
   };
 
@@ -139,11 +209,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const newCusts: Customer[] = custs.map((c, idx) => ({
       ...c,
       id: `cust-imp-${Date.now()}-${idx}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       last_order_at: new Date().toISOString(),
       churn_status: "active",
     }));
-    setCustomers((prev) => [...newCusts, ...prev]);
+    setAllCustomers((prev) => [...newCusts, ...prev]);
     return newCusts.length;
   };
 
@@ -174,21 +244,20 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const newInstr: PromoInstruction = {
       ...instr,
       id: `promo-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       created_at: new Date().toISOString(),
       status: "active",
     };
-    setPromoInstructions((prev) => [newInstr, ...prev]);
+    setAllPromoInstructions((prev) => [newInstr, ...prev]);
   };
 
   const completePromoInstruction = (id: string) => {
-    setPromoInstructions((prev) =>
+    setAllPromoInstructions((prev) =>
       prev.map((pi) => (pi.id === id ? { ...pi, status: "completed" } : pi))
     );
   };
 
-
-  // Financial calculations
+  // Financial Calculations
   const totalRevenue = transactions
     .filter((tx) => tx.status !== "cancelled")
     .reduce((sum, tx) => sum + tx.total_amount, 0);
@@ -201,10 +270,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     );
 
   const totalOperationalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-
   const netProfit = totalRevenue - totalHPP - totalOperationalExpenses;
 
-  // Cash vs Transfer breakdown
   const totalCashReceived = transactions
     .filter((tx) => tx.status !== "cancelled" && tx.payment_method === "cash")
     .reduce((sum, tx) => sum + tx.paid_amount, 0);
@@ -220,11 +287,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const crmConvertedAmount = crmConvertedLogs.reduce((sum, l) => sum + (l.converted_amount || 0), 0);
 
   const updateTenant = (updated: Partial<Tenant>) => {
-    setTenant((prev) => ({ ...prev, ...updated }));
+    setTenants((prev) =>
+      prev.map((t) => (t.id === activeTenant.id ? { ...t, ...updated } : t))
+    );
   };
 
   const setCurrentUserRole = (role: Role) => {
-    const targetUser = users.find((u) => u.role === role) || users[0];
+    const targetUser = scopedUsers.find((u) => u.role === role) || scopedUsers[0] || users[0];
     setCurrentUser(targetUser);
   };
 
@@ -232,6 +301,22 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPin = pin.trim();
 
+    // 1. Super Admin Isolated Check
+    const matchesSuperAdmin = 
+      (cleanPin === SUPER_ADMIN_USER.pin_code) &&
+      (!cleanId || cleanId === "superadmin" || cleanId === "superadmin@rotari.id" || cleanId === "super_admin");
+
+    if (matchesSuperAdmin) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("rotari_sa_auth", "true");
+        sessionStorage.setItem("rotari_auth_user_id", SUPER_ADMIN_USER.id);
+      }
+      setCurrentUser(SUPER_ADMIN_USER);
+      setIsAuthenticated(true);
+      return { success: true, user: SUPER_ADMIN_USER };
+    }
+
+    // 2. Standard Tenant User Check
     const matchedUser = users.find((u) => {
       const matchesPin = u.pin_code === cleanPin;
       if (!cleanId) return matchesPin;
@@ -245,9 +330,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     if (matchedUser) {
       setCurrentUser(matchedUser);
+      setActiveTenantId(matchedUser.tenant_id);
       setIsAuthenticated(true);
       if (typeof window !== "undefined") {
         sessionStorage.setItem("rotari_auth_user_id", matchedUser.id);
+        sessionStorage.setItem("rotari_active_tenant_id", matchedUser.tenant_id);
       }
       return { success: true, user: matchedUser };
     }
@@ -259,20 +346,29 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return loginWithCredentials(userId, pin).success;
   };
 
+  // Task 4: Tenant Baru Registration (Isolated from Demo Tenant)
   const registerDemoTenant = ({ name, email, phone, businessName, pinCode }: { name: string; email: string; phone: string; businessName: string; pinCode?: string }): User => {
+    const newTenantId = `tenant-${Date.now()}`;
     const trialExpiryIso = new Date(Date.now() + 14 * 86400000).toISOString();
     
-    setTenant((prev) => ({
-      ...prev,
+    const newTenant: Tenant = {
+      id: newTenantId,
       business_name: businessName,
+      logo_url: "/logo.png",
+      address: "Outlet Utama",
       phone_number: phone,
+      terms_and_conditions: initialTenant.terms_and_conditions,
+      thermal_paper_size: "68mm",
+      theme_preference: "light",
+      created_at: new Date().toISOString(),
       trial_ends_at: trialExpiryIso,
       subscription_status: "trial",
-    }));
+      reminder_rules: initialTenant.reminder_rules,
+    };
 
     const newOwnerUser: User = {
       id: `user-owner-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: newTenantId,
       name,
       email,
       role: "owner",
@@ -280,11 +376,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       is_active: true,
     };
 
-    setUsers((prev) => [newOwnerUser, ...prev.filter((u) => u.role !== "owner")]);
+    // Add to multi-tenant registries without touching existing Demo Tenant (tenant-001)
+    setTenants((prev) => [newTenant, ...prev]);
+    setUsers((prev) => [newOwnerUser, ...prev]);
+    setActiveTenantId(newTenantId);
     setCurrentUser(newOwnerUser);
     setIsAuthenticated(true);
+
     if (typeof window !== "undefined") {
       sessionStorage.setItem("rotari_auth_user_id", newOwnerUser.id);
+      sessionStorage.setItem("rotari_active_tenant_id", newTenantId);
     }
 
     addProspectLead({
@@ -316,7 +417,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const toggleAttendance = (userId: string) => {
     const timeStr = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
     const dateStr = new Date().toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-    const locationStr = tenant.address || "Outlet Utama";
+    const locationStr = activeTenant.address || "Outlet Utama";
 
     setUsers((prev) =>
       prev.map((u) => {
@@ -333,7 +434,6 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           if (!u.clock_out) {
             return { ...u, clock_out: timeStr };
           }
-          // Reset shift
           return {
             ...u,
             clock_in: timeStr,
@@ -371,165 +471,161 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addUser = (user: Omit<User, "id" | "tenant_id" | "is_active">) => {
+  const addUser = (userData: Omit<User, "id" | "tenant_id" | "is_active">) => {
     const newUser: User = {
-      ...user,
+      ...userData,
       id: `user-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       is_active: true,
     };
-    setUsers((prev) => [...prev, newUser]);
+    setUsers((prev) => [newUser, ...prev]);
   };
 
   const deleteUser = (id: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== id));
   };
 
-  const addProductService = (item: Omit<ProductService, "id" | "tenant_id" | "is_dead_stock">) => {
+  const addProductService = (
+    item: Omit<ProductService, "id" | "tenant_id" | "is_dead_stock">
+  ) => {
     const newItem: ProductService = {
       ...item,
       id: `ps-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       is_dead_stock: false,
       last_sold_at: new Date().toISOString(),
     };
-    setProductsServices((prev) => [newItem, ...prev]);
+    setAllProductsServices((prev) => [newItem, ...prev]);
   };
 
   const deleteProductService = (id: string) => {
-    setProductsServices((prev) => prev.filter((ps) => ps.id !== id));
+    setAllProductsServices((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const addExpense = (exp: Omit<OperationalExpense, "id" | "tenant_id">) => {
-    const newExp: OperationalExpense = {
-      ...exp,
+  const addExpense = (expense: Omit<OperationalExpense, "id" | "tenant_id">) => {
+    const newExpense: OperationalExpense = {
+      ...expense,
       id: `exp-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
     };
-    setExpenses((prev) => [newExp, ...prev]);
+    setAllExpenses((prev) => [newExpense, ...prev]);
   };
 
   const deleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    setAllExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const addCustomer = (cust: Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status">): Customer => {
+  const addCustomer = (
+    cust: Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status">
+  ): Customer => {
     const newCust: Customer = {
       ...cust,
       id: `cust-${Date.now()}`,
-      tenant_id: tenant.id,
+      tenant_id: activeTenant.id,
       last_order_at: new Date().toISOString(),
       churn_status: "active",
     };
-    setCustomers((prev) => [newCust, ...prev]);
+    setAllCustomers((prev) => [newCust, ...prev]);
     return newCust;
   };
 
-  const addCrmLog = (logData: Omit<CrmLog, "id" | "tenant_id" | "sent_at" | "is_converted">) => {
-    const newLog: CrmLog = {
-      ...logData,
-      id: `crm-${Date.now()}`,
-      tenant_id: tenant.id,
-      sent_at: new Date().toISOString(),
-      is_converted: false,
-    };
-    setCrmLogs((prev) => [newLog, ...prev]);
-  };
-
   const addTransaction = (
-    txData: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at">
+    tx: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at">
   ): Transaction => {
-    const invNumber = `INV/${new Date().toISOString().slice(0, 10).replace(/-/g, "")}/${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
-
-    let attributedLogId: string | undefined = undefined;
-    if (txData.customer_id) {
-      const recentLog = crmLogs.find(
-        (l) => l.customer_id === txData.customer_id && !l.is_converted
-      );
-      if (recentLog) {
-        attributedLogId = recentLog.id;
-        setCrmLogs((prev) =>
-          prev.map((l) =>
-            l.id === recentLog.id
-              ? {
-                  ...l,
-                  is_converted: true,
-                  converted_amount: txData.total_amount,
-                  converted_at: new Date().toISOString(),
-                }
-              : l
-          )
-        );
-      }
-    }
+    const invoiceNum = `INV/${new Date().getFullYear()}/${String(
+      transactions.length + 1
+    ).padStart(3, "0")}`;
 
     const newTx: Transaction = {
-      ...txData,
+      ...tx,
       id: `tx-${Date.now()}`,
-      tenant_id: tenant.id,
-      invoice_number: invNumber,
-      crm_attributed_log_id: attributedLogId,
+      tenant_id: activeTenant.id,
+      invoice_number: invoiceNum,
       created_at: new Date().toISOString(),
     };
 
-    setTransactions((prev) => [newTx, ...prev]);
+    setAllTransactions((prev) => [newTx, ...prev]);
 
-    if (newTx.customer_id) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === newTx.customer_id
-            ? { ...c, last_order_at: newTx.created_at, churn_status: "active" }
-            : c
-        )
-      );
-    }
+    // Update customer stats
+    setAllCustomers((prev) =>
+      prev.map((c) => {
+        if (c.id === tx.customer_id) {
+          return {
+            ...c,
+            total_orders: (c.total_orders || 0) + 1,
+            total_spent: (c.total_spent || 0) + tx.paid_amount,
+            last_order_at: new Date().toISOString(),
+            churn_status: "active",
+          };
+        }
+        return c;
+      })
+    );
 
-    newTx.items.forEach((item) => {
-      setProductsServices((prev) =>
-        prev.map((ps) => {
-          if (ps.id === item.item_id) {
-            const updatedStock = ps.type === "product" ? Math.max(0, ps.stock - item.quantity) : ps.stock;
-            return {
-              ...ps,
-              stock: updatedStock,
-              last_sold_at: newTx.created_at,
-              is_dead_stock: false,
-            };
-          }
-          return ps;
-        })
-      );
+    // Update stock for product items
+    tx.items.forEach((item) => {
+      if (item.type === "product") {
+        setAllProductsServices((prev) =>
+          prev.map((ps) => {
+            if (ps.id === item.item_id) {
+              const newStock = Math.max(0, ps.stock - item.quantity);
+              return {
+                ...ps,
+                stock: newStock,
+                last_sold_at: new Date().toISOString(),
+              };
+            }
+            return ps;
+          })
+        );
+      }
     });
 
     return newTx;
   };
 
   const updateWorkStatus = (transactionId: string, status: WorkStatus) => {
-    setTransactions((prev) =>
-      prev.map((tx) => (tx.id === transactionId ? { ...tx, work_status: status } : tx))
+    setAllTransactions((prev) =>
+      prev.map((t) => (t.id === transactionId ? { ...t, work_status: status } : t))
     );
   };
 
   const settleTransaction = (transactionId: string) => {
-    setTransactions((prev) =>
-      prev.map((tx) =>
-        tx.id === transactionId
-          ? { ...tx, paid_amount: tx.total_amount, status: "paid", work_status: "completed" }
-          : tx
-      )
+    setAllTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id === transactionId) {
+          return {
+            ...t,
+            status: "paid",
+            paid_amount: t.total_amount,
+          };
+        }
+        return t;
+      })
     );
+  };
+
+  const addCrmLog = (
+    log: Omit<CrmLog, "id" | "tenant_id" | "sent_at" | "is_converted">
+  ) => {
+    const newLog: CrmLog = {
+      ...log,
+      id: `crm-${Date.now()}`,
+      tenant_id: activeTenant.id,
+      sent_at: new Date().toISOString(),
+      is_converted: false,
+    };
+    setAllCrmLogs((prev) => [newLog, ...prev]);
   };
 
   return (
     <TenantContext.Provider
       value={{
-        tenant,
+        tenant: activeTenant,
         currentUser,
         isAuthenticated,
         logout,
-        users,
+        users: scopedUsers,
         productsServices,
         expenses,
         customers,
@@ -545,7 +641,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         importCustomers,
         addProspectLead,
         updateLeadStatus,
-        deleteProspectLead: deleteProspectLead,
+        deleteProspectLead,
         updateTenant,
         setCurrentUserRole,
         setCurrentUserWithPin,

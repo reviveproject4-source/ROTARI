@@ -77,6 +77,11 @@ export interface Customer {
   tenant_id: string;
   name: string;
   phone: string;
+  email?: string;
+  address?: string;
+  notes?: string;
+  total_orders?: number;
+  total_spent?: number;
   last_order_at: string;
   churn_status: 'active' | 'at_risk_45' | 'lost_90';
 }
