@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { Sun, Moon, LogOut, Settings as SettingsIcon, ShieldCheck, KeyRound } from "lucide-react";
 
 export default function CashierSettingsPage() {
-  const { currentUser, tenant, updateTenant, setCurrentUserRole, updateUserPin } = useTenant();
+  const { currentUser, tenant, updateTenant, logout, updateUserPin } = useTenant();
   const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (selectedTheme: 'light' | 'dark') => {
@@ -162,10 +162,9 @@ export default function CashierSettingsPage() {
 
         <button
           onClick={() => {
-            alert("Sesi kasir berhasil diakhiri (Log Out).");
-            setCurrentUserRole("owner");
+            logout();
           }}
-          className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2"
+          className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
           <span>Log Out / Keluar Sesi Kasir</span>

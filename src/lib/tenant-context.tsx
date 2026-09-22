@@ -7,6 +7,8 @@ import { initialTenant, initialUsers, initialProductsServices, initialExpenses, 
 interface TenantContextType {
   tenant: Tenant;
   currentUser: User;
+  isAuthenticated: boolean;
+  logout: () => void;
   users: User[];
   productsServices: ProductService[];
   expenses: OperationalExpense[];
@@ -70,6 +72,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [tenant, setTenant] = useState<Tenant>(initialTenant);
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [currentUser, setCurrentUser] = useState<User>(initialUsers[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [productsServices, setProductsServices] = useState<ProductService[]>(initialProductsServices);
   const [expenses, setExpenses] = useState<OperationalExpense[]>(initialExpenses);
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
@@ -77,6 +80,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [crmLogs, setCrmLogs] = useState<CrmLog[]>(initialCrmLogs);
   const [promoInstructions, setPromoInstructions] = useState<PromoInstruction[]>(initialPromoInstructions);
   const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(initialProspectLeads);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
+      if (savedUserId) {
+        const u = initialUsers.find((x) => x.id === savedUserId);
+        if (u) {
+          setCurrentUser(u);
+          setIsAuthenticated(true);
+        }
+      }
+    }
+  }, []);
 
   // 14-Day Trial Calculations
   const trialEndsDate = new Date(tenant.trial_ends_at || Date.now() + 14 * 86400000);
@@ -215,9 +231,20 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     if (!targetUser) return false;
     if (targetUser.pin_code === pin) {
       setCurrentUser(targetUser);
+      setIsAuthenticated(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("rotari_auth_user_id", targetUser.id);
+      }
       return true;
     }
     return false;
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("rotari_auth_user_id");
+    }
   };
 
   const updateUserPin = (userId: string, newPin: string) => {
@@ -443,6 +470,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       value={{
         tenant,
         currentUser,
+        isAuthenticated,
+        logout,
         users,
         productsServices,
         expenses,

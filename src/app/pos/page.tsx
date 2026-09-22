@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
+import { openWhatsAppChat } from "@/lib/whatsapp";
 import { ProductService, TransactionItem } from "@/types";
 import { 
   ShoppingCart, 
@@ -61,6 +62,7 @@ export default function CashierMainDashboardPage() {
   const [discountAmountManual, setDiscountAmountManual] = useState<number | "">("");
   const [dpAmountManual, setDpAmountManual] = useState<number | "">("");
   const [lastTxReceipt, setLastTxReceipt] = useState<any | null>(null);
+  const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
 
   // Modals for Clickable Header Metrics & Sections
   const [showOmsetModal, setShowOmsetModal] = useState(false);
@@ -215,7 +217,7 @@ export default function CashierMainDashboardPage() {
     setDpAmountManual("");
   };
 
-  const generateWaLink = (tx: any) => {
+  const handleSendWaNota = (tx: any) => {
     const sisa = tx.total_amount - tx.paid_amount;
     const text = `*NOTA DIGITAL OFFICIAL - ${tenant.business_name}*
 Invoice: ${tx.invoice_number}
@@ -241,14 +243,18 @@ ${tenant.terms_and_conditions}
 Terima kasih atas kunjungan Anda!`;
 
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
-    return `https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
+    setWaOpenedStatus(true);
+    setTimeout(() => setWaOpenedStatus(false), 3500);
+    openWhatsAppChat(phone, text);
   };
 
-  const generatePickUpWaLink = (tx: any) => {
+  const handleSendPickUpWa = (tx: any) => {
     const sisa = tx.total_amount - tx.paid_amount;
     const text = `Halo Kak ${tx.customer_name}, pengerjaan barang kesayangan Anda (${tx.item_notes || 'Layanan Toko'}) sudah *SIAP DIAMBIL* di ${tenant.business_name}.\n\n*Alamat Toko:* ${tenant.address}\n${sisa > 0 ? `*Sisa Pelunasan:* Rp ${sisa.toLocaleString("id-ID")}\n` : "*Status:* LUNAS\n"}\nKami tunggu kedatangannya ya kak!`;
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
-    return `https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
+    setWaOpenedStatus(true);
+    setTimeout(() => setWaOpenedStatus(false), 3500);
+    openWhatsAppChat(phone, text);
   };
 
   const todayFormatted = new Date().toLocaleDateString("id-ID", {
@@ -260,6 +266,12 @@ Terima kasih atas kunjungan Anda!`;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {waOpenedStatus && (
+        <div className="fixed top-4 right-4 z-50 flex items-center space-x-2 px-4 py-3 bg-emerald-600 text-white font-bold rounded-2xl text-xs shadow-xl animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>WhatsApp dibuka / pesan siap dikirim</span>
+        </div>
+      )}
       
       {/* 1. Header & Absensi Kasir Bar (Tampilan SaaS Clean Bar) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
@@ -768,15 +780,13 @@ Terima kasih atas kunjungan Anda!`;
                   <span>Cetak ({tenant.thermal_paper_size})</span>
                 </button>
 
-                <a
-                  href={generateWaLink(lastTxReceipt)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center space-x-2 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
+                <button
+                  onClick={() => handleSendWaNota(lastTxReceipt)}
+                  className="flex items-center justify-center space-x-2 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>Kirim WA Digital</span>
-                </a>
+                </button>
               </div>
             </div>
           )}
@@ -956,14 +966,12 @@ Terima kasih atas kunjungan Anda!`;
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <a
-                          href={generatePickUpWaLink(tx)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1"
+                        <button
+                          onClick={() => handleSendPickUpWa(tx)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer hover:bg-emerald-700 transition"
                         >
                           <Send className="w-3 h-3" /> WA
-                        </a>
+                        </button>
 
                         <button
                           onClick={() => {

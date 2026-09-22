@@ -168,16 +168,16 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Logo Upload (Kamera / Galeri HP) */}
+            {/* Logo Upload (Kamera / Galeri HP) - Khusus Cetak Nota */}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
-                Logo Usaha (Default Kamera / Galeri HP)
+                Logo Outlet Untuk Cetak Nota Thermal
               </label>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
-                    alt="Logo Toko"
+                    alt="Logo Nota Toko"
                     className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-700 shadow-sm"
                   />
                 ) : (
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                 <div className="space-y-2 flex-1 w-full">
                   <label className="flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/50 dark:bg-sky-950/20 hover:bg-sky-100 text-sky-700 dark:text-sky-300 text-xs font-bold cursor-pointer transition">
                     <Camera className="w-4 h-4" />
-                    <span>Pilih dari Galeri / Kamera HP</span>
+                    <span>Pilih Logo Nota dari Galeri / Kamera</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                     />
                   </label>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Logo yang diunggah akan otomatis ditampilkan pada Nota Thermal dan Nota Digital WA.
+                    Logo yang diunggah khusus digunakan untuk cetakan header pada Nota Thermal kasir, bukan menggantikan logo aplikasi ROTARI.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTenant } from "@/lib/tenant-context";
+import { openWhatsAppChat } from "@/lib/whatsapp";
 import { 
   ShieldCheck, 
   Users, 
@@ -36,6 +37,7 @@ export default function SuperAdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'leads' | 'tenants'>('leads');
   const [leadSearch, setLeadSearch] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'new' | 'contacted' | 'converted'>('all');
+  const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
 
   const filteredLeads = prospectLeads.filter((lead) => {
     const matchesQuery = 
@@ -55,6 +57,12 @@ export default function SuperAdminDashboardPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {waOpenedStatus && (
+        <div className="fixed top-4 right-4 z-50 flex items-center space-x-2 px-4 py-3 bg-emerald-600 text-white font-bold rounded-2xl text-xs shadow-xl animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>WhatsApp dibuka / pesan siap dikirim</span>
+        </div>
+      )}
       
       {/* Super Admin Executive Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
@@ -266,15 +274,18 @@ export default function SuperAdminDashboardPage() {
 
                         <td className="py-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
-                            <a
-                              href={waLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1"
+                            <button
+                              onClick={() => {
+                                const msg = `Halo Kak ${lead.name} dari ${lead.business_name}, terima kasih telah mendaftar Uji Coba Demo SaaS ROTARI! Kapan waktu yang tepat untuk kita jadwalkan demo online?`;
+                                setWaOpenedStatus(true);
+                                setTimeout(() => setWaOpenedStatus(false), 3500);
+                                openWhatsAppChat(lead.phone, msg);
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1 cursor-pointer"
                             >
                               <Send className="w-3.5 h-3.5" />
                               <span>Hubungi WA</span>
-                            </a>
+                            </button>
 
                             <select
                               value={lead.status}

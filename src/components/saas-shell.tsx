@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LoginModal } from "./login-modal";
+import { LoginScreen } from "./login-screen";
 import { Menu, X as CloseIcon } from "lucide-react";
 
 export function SaasShell({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,8 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   const { 
     tenant, 
     currentUser, 
+    isAuthenticated,
+    logout,
     updateTenant, 
     transactions, 
     daysRemainingInTrial, 
@@ -49,6 +52,10 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (mounted && !isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -111,25 +118,17 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         {/* Brand Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-3 overflow-hidden">
-            {tenant.logo_url ? (
-              <img
-                src={tenant.logo_url}
-                alt={tenant.business_name}
-                className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm flex-shrink-0"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center text-white font-black text-lg shadow-sm flex-shrink-0">
-                {tenant.business_name.charAt(0)}
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm flex-shrink-0">
+              <Store className="w-5 h-5 text-white" />
+            </div>
             
             {(!sidebarCollapsed || mobileMenuOpen) && (
               <div className="truncate">
-                <h1 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">
-                  {tenant.business_name}
+                <h1 className="font-black text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">
+                  ROTARI
                 </h1>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
-                  SaaS Multi-Tenant
+                  POS &amp; CRM Platform
                 </span>
               </div>
             )}
@@ -154,12 +153,21 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                   Role: {currentUser.role}
                 </span>
               </div>
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="text-[10px] font-extrabold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
-              >
-                Ganti User (PIN)
-              </button>
+              <div className="flex items-center space-x-2 text-[10px] font-extrabold">
+                <button
+                  onClick={() => setIsLoginModalOpen(true)}
+                  className="text-sky-600 dark:text-sky-400 hover:underline"
+                >
+                  Ganti User
+                </button>
+                <span className="text-slate-300 dark:text-slate-700">•</span>
+                <button
+                  onClick={() => logout()}
+                  className="text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
+                >
+                  <LogOut className="w-3 h-3" /> Keluar
+                </button>
+              </div>
             </div>
           </div>
         )}

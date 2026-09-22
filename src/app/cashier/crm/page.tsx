@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
+import { openWhatsAppChat } from "@/lib/whatsapp";
 import { 
   MessageSquareText, 
   Send, 
@@ -52,12 +53,12 @@ export default function CashierCrmPage() {
     setCustomPromoMessage(`Halo Kak! Ada promo spesial dari Owner untuk ${pi.product_name}:\n\n"${pi.promo_message}"\n\nYuk kunjungi ${tenant.business_name} di ${tenant.address}!`);
   };
 
-  // TOMBOL KIRIM VIA WA.ME (BROADCAST PROMO DENGAN FOTO & TARGET PELANGGAN)
+  // TOMBOL KIRIM VIA WA.ME (BROADCAST PROMO)
   const handleSendWaBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTargetCustomer) return;
 
-    const finalMessage = `${customPromoMessage}\n\n----------------------------\n*Outlet:* ${tenant.business_name}\n*Alamat:* ${tenant.address}\n${attachedPhotoUrl ? "\n*(Lampiran Foto Promo Berhasil Dilampirkan)*\n" : ""}`;
+    const finalMessage = `${customPromoMessage}\n\n----------------------------\n*Outlet:* ${tenant.business_name}\n*Alamat:* ${tenant.address}`;
 
     // Record log to Owner CRM report
     addCrmLog({
@@ -72,10 +73,8 @@ export default function CashierCrmPage() {
     setBroadcastSuccess(true);
     setTimeout(() => setBroadcastSuccess(false), 3500);
 
-    // Open WhatsApp deep link
-    const phoneClean = selectedTargetCustomer.phone.replace(/[^0-9]/g, "");
-    const waUrl = `https://wa.me/${phoneClean}?text=${encodeURIComponent(finalMessage)}`;
-    window.open(waUrl, "_blank");
+    // Open WhatsApp deep link directly on mobile/desktop
+    openWhatsAppChat(selectedTargetCustomer.phone, finalMessage);
   };
 
   const handleSendWaReminder = (cust: any, type: 'retention_45' | 'retention_90') => {
@@ -94,9 +93,8 @@ export default function CashierCrmPage() {
     setBroadcastSuccess(true);
     setTimeout(() => setBroadcastSuccess(false), 3500);
 
-    // Open WhatsApp deep link
-    const waUrl = `https://wa.me/${cust.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, "_blank");
+    // Open WhatsApp deep link directly on mobile/desktop
+    openWhatsAppChat(cust.phone, message);
   };
 
   return (
@@ -112,9 +110,9 @@ export default function CashierCrmPage() {
         </div>
 
         {broadcastSuccess && (
-          <div className="flex items-center space-x-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold shadow-sm">
+          <div className="flex items-center space-x-2 px-3.5 py-2 bg-emerald-50 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold shadow-sm animate-in fade-in duration-200">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Pesan WA Promo Berhasil Dikirim via WA.ME!</span>
+            <span>WhatsApp dibuka / pesan siap dikirim</span>
           </div>
         )}
       </div>
@@ -232,7 +230,7 @@ export default function CashierCrmPage() {
                   />
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Foto promo dari galeri HP akan dilampirkan bersama pesan teks.
+                  Pratinjau foto promo. WhatsApp akan dibuka dengan teks pesan terisi otomatis.
                 </p>
               </div>
             </div>

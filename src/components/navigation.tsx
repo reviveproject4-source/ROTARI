@@ -17,7 +17,8 @@ import {
   Users,
   MessageSquareText,
   UserCheck2,
-  LogOut
+  LogOut,
+  Store
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -64,21 +65,13 @@ export function Navigation() {
           
           {/* Outlet Identity */}
           <div className="flex items-center space-x-3">
-            {tenant.logo_url ? (
-              <img
-                src={tenant.logo_url}
-                alt={tenant.business_name}
-                className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                {tenant.business_name.charAt(0)}
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
+              <Store className="w-5 h-5 text-white" />
+            </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-base text-slate-900 dark:text-slate-100 tracking-tight">
-                  {tenant.business_name}
+                <span className="font-extrabold text-base text-slate-900 dark:text-slate-100 tracking-tight">
+                  ROTARI ({tenant.business_name})
                 </span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                   currentUser.role === 'owner' 
