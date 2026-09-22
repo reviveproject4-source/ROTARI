@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
 import { useRouter } from "next/navigation";
-import { KeyRound, AlertCircle, User, Lock, ArrowRight, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { KeyRound, AlertCircle, User, Lock, ArrowRight } from "lucide-react";
 
 export function LoginScreen() {
   const { loginWithCredentials } = useTenant();
@@ -121,17 +120,6 @@ export function LoginScreen() {
           </button>
 
         </form>
-
-        {/* Separated Super Admin Portal Access */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
-          <Link
-            href="/super-admin"
-            className="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple-600 dark:text-purple-400 hover:underline"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Portal Super Admin ROTARI (Aktivasi Lisensi &amp; Onboarding)</span>
-          </Link>
-        </div>
 
       </div>
     </div>

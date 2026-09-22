@@ -100,7 +100,6 @@ export default function DemoRequestPage() {
                 <span>Mulai Gunakan ROTARI Sekarang</span>
               </Link>
 
-              <div className="flex gap-2 justify-center pt-2">
                 <button
                   onClick={() => {
                     setName("");
@@ -112,16 +111,8 @@ export default function DemoRequestPage() {
                   }}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
                 >
-                  Form Baru
+                  Daftar Form Baru
                 </button>
-                <Link
-                  href="/super-admin"
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 flex items-center gap-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Portal Super Admin</span>
-                </Link>
-              </div>
             </div>
           </div>
         ) : (
