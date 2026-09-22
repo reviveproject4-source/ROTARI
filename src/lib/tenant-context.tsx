@@ -37,6 +37,7 @@ interface TenantContextType {
   setCurrentUserRole: (role: Role) => void;
   setCurrentUserWithPin: (userId: string, pin: string) => boolean;
   loginWithCredentials: (identifier: string, pin: string) => { success: boolean; user?: User };
+  registerDemoTenant: (data: { name: string; email: string; phone: string; businessName: string; pinCode?: string }) => User;
   updateUserPin: (userId: string, newPin: string) => void;
   toggleAttendance: (userId: string) => void;
   addUser: (user: Omit<User, "id" | "tenant_id" | "is_active">) => void;
@@ -256,6 +257,44 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentUserWithPin = (userId: string, pin: string): boolean => {
     return loginWithCredentials(userId, pin).success;
+  };
+
+  const registerDemoTenant = ({ name, email, phone, businessName, pinCode }: { name: string; email: string; phone: string; businessName: string; pinCode?: string }): User => {
+    const trialExpiryIso = new Date(Date.now() + 14 * 86400000).toISOString();
+    
+    setTenant((prev) => ({
+      ...prev,
+      business_name: businessName,
+      phone_number: phone,
+      trial_ends_at: trialExpiryIso,
+      subscription_status: "trial",
+    }));
+
+    const newOwnerUser: User = {
+      id: `user-owner-${Date.now()}`,
+      tenant_id: tenant.id,
+      name,
+      email,
+      role: "owner",
+      pin_code: pinCode && pinCode.trim() ? pinCode.trim() : "123456",
+      is_active: true,
+    };
+
+    setUsers((prev) => [newOwnerUser, ...prev.filter((u) => u.role !== "owner")]);
+    setCurrentUser(newOwnerUser);
+    setIsAuthenticated(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("rotari_auth_user_id", newOwnerUser.id);
+    }
+
+    addProspectLead({
+      name,
+      email,
+      phone,
+      business_name: businessName,
+    });
+
+    return newOwnerUser;
   };
 
   const logout = () => {
@@ -511,6 +550,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         setCurrentUserRole,
         setCurrentUserWithPin,
         loginWithCredentials,
+        registerDemoTenant,
         updateUserPin,
         toggleAttendance,
         addUser,

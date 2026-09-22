@@ -80,42 +80,7 @@ export const initialUsers: User[] = [
   }
 ];
 
-export const initialProductsServices: ProductService[] = [
-  {
-    id: "ps-1",
-    tenant_id: "tenant-001",
-    name: "Deep Cleaning Canvas/Sneaker",
-    type: "service",
-    cost_price: 10000,
-    sell_price: 45000,
-    duration_minutes: 180,
-    raw_material_cost: 3000,
-    stock: 0,
-    is_dead_stock: false,
-  },
-  {
-    id: "ps-2",
-    tenant_id: "tenant-001",
-    name: "Leather Treatment & Recolor",
-    type: "service",
-    cost_price: 25000,
-    sell_price: 120000,
-    duration_minutes: 1440,
-    raw_material_cost: 15000,
-    stock: 0,
-    is_dead_stock: false,
-  },
-  {
-    id: "ps-3",
-    tenant_id: "tenant-001",
-    name: "Pembersih Sepatu Waterless Spray 250ml",
-    type: "product",
-    cost_price: 20000,
-    sell_price: 40000,
-    stock: 20,
-    is_dead_stock: false,
-  }
-];
+export const initialProductsServices: ProductService[] = [];
 
 export const initialExpenses: OperationalExpense[] = [];
 
