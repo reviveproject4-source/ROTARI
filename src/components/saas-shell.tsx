@@ -53,10 +53,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  if (mounted && !isAuthenticated) {
-    return <LoginScreen />;
-  }
-
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -93,8 +89,10 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 relative">
       
+      {mounted && !isAuthenticated && <LoginScreen />}
+
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
