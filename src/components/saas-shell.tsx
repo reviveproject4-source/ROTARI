@@ -65,7 +65,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     { href: "/inventory", label: "Inventory & Stok", icon: Package, badge: null },
     { href: "/expenses", label: "Biaya Operasional", icon: DollarSign, badge: null },
     { href: "/crm", label: "CRM Laporan", icon: MessageSquareText, badge: "Laporan" },
-    { href: "/demo-request", label: "Form Demo", icon: Sparkles, badge: "Public" },
     { href: "/settings", label: "Pengaturan Outlet", icon: SettingsIcon, badge: null },
   ];
 
