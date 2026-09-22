@@ -33,19 +33,23 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6 relative">
         
-        {/* ROTARI Brand Header */}
+        {/* ROTARI Brand Header with Logo */}
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-indigo-600 mx-auto flex items-center justify-center text-white shadow-xl shadow-sky-600/20">
-            <Store className="w-8 h-8" />
+          <div className="relative inline-block">
+            <img 
+              src="/rotari-logo.png" 
+              alt="ROTARI Official Logo" 
+              className="w-20 h-20 mx-auto rounded-full object-contain bg-white p-1 shadow-xl shadow-emerald-500/20 ring-4 ring-emerald-500/10"
+            />
           </div>
           <div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black tracking-widest bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 uppercase">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black tracking-widest bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 uppercase">
               SaaS Multi-Tenant Platform
             </span>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1.5">
               ROTARI POS &amp; CRM
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">

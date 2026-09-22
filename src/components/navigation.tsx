@@ -65,9 +65,11 @@ export function Navigation() {
           
           {/* Outlet Identity */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              <Store className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/rotari-logo.png" 
+              alt="ROTARI Logo" 
+              className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700" 
+            />
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-base text-slate-900 dark:text-slate-100 tracking-tight">

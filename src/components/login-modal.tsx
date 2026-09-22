@@ -50,9 +50,11 @@ export function LoginModal({ isOpen, onClose, targetRole }: LoginModalProps) {
 
         {/* Modal Header */}
         <div className="text-center space-y-2 pt-2">
-          <div className="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 mx-auto flex items-center justify-center border border-sky-100 dark:border-sky-900">
-            <KeyRound className="w-7 h-7" />
-          </div>
+          <img 
+            src="/rotari-logo.png" 
+            alt="ROTARI Logo" 
+            className="w-14 h-14 mx-auto rounded-full object-contain bg-white p-1 shadow-md border border-slate-200 dark:border-slate-800" 
+          />
           <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Autentikasi Pengguna &amp; Role
           </h2>

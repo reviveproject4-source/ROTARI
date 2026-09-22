@@ -91,7 +91,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 relative">
       
-      {mounted && !isAuthenticated && <LoginScreen />}
+      {!isAuthenticated && <LoginScreen />}
 
       <LoginModal 
         isOpen={isLoginModalOpen} 
@@ -116,16 +116,18 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         {/* Brand Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm flex-shrink-0">
-              <Store className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/rotari-logo.png" 
+              alt="ROTARI Logo" 
+              className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" 
+            />
             
             {(!sidebarCollapsed || mobileMenuOpen) && (
               <div className="truncate">
                 <h1 className="font-black text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">
                   ROTARI
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
                   POS &amp; CRM Platform
                 </span>
               </div>
