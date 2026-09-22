@@ -68,6 +68,11 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     { href: "/settings", label: "Pengaturan Outlet", icon: SettingsIcon, badge: null },
   ];
 
+  // Super Admin Nav Items (Khusus Super Admin)
+  const superAdminNavItems = [
+    { href: "/super-admin", label: "Dashboard Super Admin", icon: ShieldCheck, badge: "Super Admin" },
+  ];
+
   // Cashier Nav Items (Exactly 4 items)
   const pendingQueueCount = transactions.filter((t) => t.status === "partially_paid" || t.work_status === "ready_for_pickup").length;
 
@@ -78,7 +83,12 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     { href: "/cashier/settings", label: "Setting Kasir", icon: SettingsIcon, badge: null },
   ];
 
-  const currentNavItems = currentUser.role === "owner" ? ownerNavItems : cashierNavItems;
+  const isSuperAdminRoute = pathname === "/super-admin";
+  const currentNavItems = (isSuperAdminRoute || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id")
+    ? superAdminNavItems
+    : currentUser.role === "owner" 
+    ? ownerNavItems 
+    : cashierNavItems;
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
@@ -174,7 +184,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {!sidebarCollapsed && (
             <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">
-              Menu {currentUser.role === "owner" ? "Owner Platform" : "Kasir Operasional"}
+              Menu {isSuperAdminRoute || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id" ? "Super Admin Platform" : currentUser.role === "owner" ? "Owner Platform" : "Kasir Operasional"}
             </span>
           )}
 
