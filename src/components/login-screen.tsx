@@ -21,7 +21,9 @@ export function LoginScreen() {
 
     if (result.success && result.user) {
       setPinCode("");
-      if (result.user.role === "owner") {
+      if (result.user.id === "user-super-admin" || result.user.email === "superadmin@rotari.id") {
+        router.push("/super-admin");
+      } else if (result.user.role === "owner") {
         router.push("/");
       } else {
         router.push("/pos");

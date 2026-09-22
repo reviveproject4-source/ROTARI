@@ -17,13 +17,17 @@ import {
   Calendar,
   AlertTriangle,
   TrendingUp,
-  UserPlus
+  UserPlus,
+  Lock,
+  AlertCircle,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function SuperAdminDashboardPage() {
   const { 
+    currentUser,
     tenant, 
     prospectLeads, 
     updateLeadStatus, 
@@ -34,10 +38,107 @@ export default function SuperAdminDashboardPage() {
     activateSubscription
   } = useTenant();
 
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState("");
   const [activeTab, setActiveTab] = useState<'leads' | 'tenants'>('leads');
   const [leadSearch, setLeadSearch] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'new' | 'contacted' | 'converted'>('all');
   const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saAuth = sessionStorage.getItem("rotari_sa_auth");
+      if (saAuth === "true" || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id") {
+        setIsAuthorized(true);
+      }
+    }
+  }, [currentUser]);
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinInput.trim() === "999999") {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("rotari_sa_auth", "true");
+      }
+      setIsAuthorized(true);
+      setPinError("");
+    } else {
+      setPinError("Kode PIN Super Admin tidak valid. (Gunakan PIN default: 999999)");
+    }
+  };
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-[70vh] flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 mx-auto flex items-center justify-center border border-purple-200">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+              Akses Terproteksi
+            </span>
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+              Portal Super Admin ROTARI
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Masukkan 6 digit PIN Otentikasi Super Admin untuk mengakses portal manajemen platform.
+            </p>
+          </div>
+
+          <form onSubmit={handlePinSubmit} className="space-y-4 text-left">
+            {pinError && (
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{pinError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                PIN Super Admin *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    setPinError("");
+                  }}
+                  placeholder="PIN Default: 999999"
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 px-4 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-lg shadow-purple-600/20 transition flex items-center justify-center gap-2 cursor-pointer mt-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Buka Portal Super Admin</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Link
+              href="/"
+              className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            >
+              Kembali ke Aplikasi ROTARI
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredLeads = prospectLeads.filter((lead) => {
     const matchesQuery = 

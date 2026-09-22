@@ -33,6 +33,15 @@ export const initialUsers: User[] = [
     role: "owner",
     pin_code: "123456",
     is_active: true,
+  },
+  {
+    id: "user-super-admin",
+    tenant_id: "platform-rotari",
+    name: "Super Admin ROTARI",
+    email: "superadmin@rotari.id",
+    role: "owner",
+    pin_code: "999999",
+    is_active: true,
   }
 ];
 
