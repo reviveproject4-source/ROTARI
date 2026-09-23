@@ -102,9 +102,28 @@ function setStorageItem<T>(key: string, value: T): void {
   }
 }
 
+function getStorageItemWithMerge<T extends { id: string }>(key: string, initialData: T[]): T[] {
+  if (typeof window === "undefined") return initialData;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return initialData;
+    const saved = JSON.parse(raw) as T[];
+    if (!Array.isArray(saved) || saved.length === 0) return initialData;
+    const merged = [...saved];
+    initialData.forEach((item) => {
+      if (!merged.some((m) => m.id === item.id)) {
+        merged.push(item);
+      }
+    });
+    return merged;
+  } catch {
+    return initialData;
+  }
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Multi-Tenant Registries (Memory & SessionStorage)
-  const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItem("rotari_tenants_registry", [initialTenant]));
+  const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItemWithMerge("rotari_tenants_registry", [initialTenant]));
   const [activeTenantId, setActiveTenantId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("rotari_active_tenant_id") || "tenant-001";
@@ -112,18 +131,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return "tenant-001";
   });
 
-  const [users, setUsers] = useState<User[]>(() => getStorageItem("rotari_users_registry", initialUsers));
+  const [users, setUsers] = useState<User[]>(() => getStorageItemWithMerge("rotari_users_registry", initialUsers));
   const [currentUser, setCurrentUser] = useState<User>(() => initialUsers[0]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Repositories
-  const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItem("rotari_products_registry", initialProductsServices));
-  const [allExpenses, setAllExpenses] = useState<OperationalExpense[]>(() => getStorageItem("rotari_expenses_registry", initialExpenses));
-  const [allCustomers, setAllCustomers] = useState<Customer[]>(() => getStorageItem("rotari_customers_registry", initialCustomers));
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => getStorageItem("rotari_transactions_registry", initialTransactions));
-  const [allCrmLogs, setAllCrmLogs] = useState<CrmLog[]>(() => getStorageItem("rotari_crm_logs_registry", initialCrmLogs));
-  const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItem("rotari_promo_instructions_registry", initialPromoInstructions));
-  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItem("rotari_prospect_leads_registry", initialProspectLeads));
+  const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItemWithMerge("rotari_products_registry", initialProductsServices));
+  const [allExpenses, setAllExpenses] = useState<OperationalExpense[]>(() => getStorageItemWithMerge("rotari_expenses_registry", initialExpenses));
+  const [allCustomers, setAllCustomers] = useState<Customer[]>(() => getStorageItemWithMerge("rotari_customers_registry", initialCustomers));
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => getStorageItemWithMerge("rotari_transactions_registry", initialTransactions));
+  const [allCrmLogs, setAllCrmLogs] = useState<CrmLog[]>(() => getStorageItemWithMerge("rotari_crm_logs_registry", initialCrmLogs));
+  const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry", initialPromoInstructions));
+  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry", initialProspectLeads));
 
   // 1. Restore Active Session on Mount
   useEffect(() => {
