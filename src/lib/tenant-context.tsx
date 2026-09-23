@@ -14,6 +14,19 @@ import {
   initialProspectLeads,
   SUPER_ADMIN_USER
 } from "./initial-data";
+import {
+  persistTenantToSupabase,
+  persistUserToSupabase,
+  persistCustomerToSupabase,
+  persistProductServiceToSupabase,
+  deleteProductServiceFromSupabase,
+  persistExpenseToSupabase,
+  deleteExpenseFromSupabase,
+  persistTransactionToSupabase,
+  persistCrmLogToSupabase,
+  persistPromoInstructionToSupabase,
+  persistProspectLeadToSupabase,
+} from "./supabase-sync";
 
 interface TenantContextType {
   tenant: Tenant;
@@ -245,11 +258,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       status: "new",
     };
     setProspectLeads((prev) => [newLead, ...prev]);
+    persistProspectLeadToSupabase(newLead);
   };
 
   const updateLeadStatus = (id: string, status: 'new' | 'contacted' | 'converted') => {
     setProspectLeads((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status } : l))
+      prev.map((l) => {
+        if (l.id === id) {
+          const updated = { ...l, status };
+          persistProspectLeadToSupabase(updated);
+          return updated;
+        }
+        return l;
+      })
     );
   };
 
@@ -268,11 +289,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       status: "active",
     };
     setAllPromoInstructions((prev) => [newInstr, ...prev]);
+    persistPromoInstructionToSupabase(newInstr);
   };
 
   const completePromoInstruction = (id: string) => {
     setAllPromoInstructions((prev) =>
-      prev.map((pi) => (pi.id === id ? { ...pi, status: "completed" } : pi))
+      prev.map((pi) => {
+        if (pi.id === id) {
+          const updated = { ...pi, status: "completed" as const };
+          persistPromoInstructionToSupabase(updated);
+          return updated;
+        }
+        return pi;
+      })
     );
   };
 
@@ -306,9 +335,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const crmConvertedAmount = crmConvertedLogs.reduce((sum, l) => sum + (l.converted_amount || 0), 0);
 
   const updateTenant = (updated: Partial<Tenant>) => {
+    const merged = { ...activeTenant, ...updated };
     setTenants((prev) =>
-      prev.map((t) => (t.id === activeTenant.id ? { ...t, ...updated } : t))
+      prev.map((t) => (t.id === activeTenant.id ? merged : t))
     );
+    persistTenantToSupabase(merged);
   };
 
   const setCurrentUserRole = (role: Role) => {
@@ -407,6 +438,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem("rotari_active_tenant_id", newTenantId);
     }
 
+    persistTenantToSupabase(newTenant);
+    persistUserToSupabase(newOwnerUser);
+
     addProspectLead({
       name,
       email,
@@ -426,10 +460,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   const updateUserPin = (userId: string, newPin: string) => {
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, pin_code: newPin } : u))
+      prev.map((u) => {
+        if (u.id === userId) {
+          const updated = { ...u, pin_code: newPin };
+          persistUserToSupabase(updated);
+          return updated;
+        }
+        return u;
+      })
     );
     if (currentUser.id === userId) {
-      setCurrentUser((prev) => ({ ...prev, pin_code: newPin }));
+      const updatedCurr = { ...currentUser, pin_code: newPin };
+      setCurrentUser(updatedCurr);
+      persistUserToSupabase(updatedCurr);
     }
   };
 
@@ -441,8 +484,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
+          let updated: User;
           if (!u.clock_in) {
-            return {
+            updated = {
+              ...u,
+              clock_in: timeStr,
+              clock_in_date: dateStr,
+              clock_in_location: locationStr,
+              clock_out: undefined,
+            };
+          } else if (!u.clock_out) {
+            updated = { ...u, clock_out: timeStr };
+          } else {
+            updated = {
               ...u,
               clock_in: timeStr,
               clock_in_date: dateStr,
@@ -450,16 +504,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
               clock_out: undefined,
             };
           }
-          if (!u.clock_out) {
-            return { ...u, clock_out: timeStr };
-          }
-          return {
-            ...u,
-            clock_in: timeStr,
-            clock_in_date: dateStr,
-            clock_in_location: locationStr,
-            clock_out: undefined,
-          };
+          persistUserToSupabase(updated);
+          return updated;
         }
         return u;
       })
@@ -467,8 +513,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     if (currentUser.id === userId) {
       setCurrentUser((prev) => {
+        let updated: User;
         if (!prev.clock_in) {
-          return {
+          updated = {
+            ...prev,
+            clock_in: timeStr,
+            clock_in_date: dateStr,
+            clock_in_location: locationStr,
+            clock_out: undefined,
+          };
+        } else if (!prev.clock_out) {
+          updated = { ...prev, clock_out: timeStr };
+        } else {
+          updated = {
             ...prev,
             clock_in: timeStr,
             clock_in_date: dateStr,
@@ -476,16 +533,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             clock_out: undefined,
           };
         }
-        if (!prev.clock_out) {
-          return { ...prev, clock_out: timeStr };
-        }
-        return {
-          ...prev,
-          clock_in: timeStr,
-          clock_in_date: dateStr,
-          clock_in_location: locationStr,
-          clock_out: undefined,
-        };
+        persistUserToSupabase(updated);
+        return updated;
       });
     }
   };
@@ -498,6 +547,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       is_active: true,
     };
     setUsers((prev) => [newUser, ...prev]);
+    persistUserToSupabase(newUser);
   };
 
   const deleteUser = (id: string) => {
@@ -515,10 +565,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       last_sold_at: new Date().toISOString(),
     };
     setAllProductsServices((prev) => [newItem, ...prev]);
+    persistProductServiceToSupabase(newItem);
   };
 
   const deleteProductService = (id: string) => {
     setAllProductsServices((prev) => prev.filter((p) => p.id !== id));
+    deleteProductServiceFromSupabase(id);
   };
 
   const addExpense = (expense: Omit<OperationalExpense, "id" | "tenant_id">) => {
@@ -528,10 +580,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       tenant_id: activeTenant.id,
     };
     setAllExpenses((prev) => [newExpense, ...prev]);
+    persistExpenseToSupabase(newExpense);
   };
 
   const deleteExpense = (id: string) => {
     setAllExpenses((prev) => prev.filter((e) => e.id !== id));
+    deleteExpenseFromSupabase(id);
   };
 
   const addCustomer = (
@@ -545,6 +599,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       churn_status: "active",
     };
     setAllCustomers((prev) => [newCust, ...prev]);
+    persistCustomerToSupabase(newCust);
     return newCust;
   };
 
@@ -564,18 +619,21 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     };
 
     setAllTransactions((prev) => [newTx, ...prev]);
+    persistTransactionToSupabase(newTx);
 
     // Update customer stats
     setAllCustomers((prev) =>
       prev.map((c) => {
         if (c.id === tx.customer_id) {
-          return {
+          const updatedCust = {
             ...c,
             total_orders: (c.total_orders || 0) + 1,
             total_spent: (c.total_spent || 0) + tx.paid_amount,
             last_order_at: new Date().toISOString(),
-            churn_status: "active",
+            churn_status: "active" as const,
           };
+          persistCustomerToSupabase(updatedCust);
+          return updatedCust;
         }
         return c;
       })
@@ -588,11 +646,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           prev.map((ps) => {
             if (ps.id === item.item_id) {
               const newStock = Math.max(0, ps.stock - item.quantity);
-              return {
+              const updatedPs = {
                 ...ps,
                 stock: newStock,
                 last_sold_at: new Date().toISOString(),
               };
+              persistProductServiceToSupabase(updatedPs);
+              return updatedPs;
             }
             return ps;
           })
@@ -605,7 +665,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   const updateWorkStatus = (transactionId: string, status: WorkStatus) => {
     setAllTransactions((prev) =>
-      prev.map((t) => (t.id === transactionId ? { ...t, work_status: status } : t))
+      prev.map((t) => {
+        if (t.id === transactionId) {
+          const updated = { ...t, work_status: status };
+          persistTransactionToSupabase(updated);
+          return updated;
+        }
+        return t;
+      })
     );
   };
 
@@ -613,11 +680,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     setAllTransactions((prev) =>
       prev.map((t) => {
         if (t.id === transactionId) {
-          return {
+          const updated = {
             ...t,
-            status: "paid",
+            status: "paid" as const,
             paid_amount: t.total_amount,
           };
+          persistTransactionToSupabase(updated);
+          return updated;
         }
         return t;
       })
@@ -635,6 +704,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       is_converted: false,
     };
     setAllCrmLogs((prev) => [newLog, ...prev]);
+    persistCrmLogToSupabase(newLog);
   };
 
   return (
