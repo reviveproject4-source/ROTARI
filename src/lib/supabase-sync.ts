@@ -2,13 +2,18 @@ import { supabase } from "./supabase";
 import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, PromoInstruction, ProspectLead } from "@/types";
 
 /**
- * Helper persistence layer for Supabase Project uzrqolqdqsispedbmtrl.
- * Performs background asynchronous persistence without blocking UI flow.
+ * Persistence layer for Supabase Project uzrqolqdqsispedbmtrl.
+ * Returns explicit status object { success, error } for audit verification.
  */
 
-export async function persistTenantToSupabase(tenant: Tenant): Promise<void> {
+export interface SyncResult {
+  success: boolean;
+  error?: any;
+}
+
+export async function persistTenantToSupabase(tenant: Tenant): Promise<SyncResult> {
   try {
-    await supabase.from("tenants").upsert({
+    const { error } = await supabase.from("tenants").upsert({
       id: tenant.id,
       business_name: tenant.business_name,
       logo_url: tenant.logo_url,
@@ -22,14 +27,20 @@ export async function persistTenantToSupabase(tenant: Tenant): Promise<void> {
       subscription_status: tenant.subscription_status,
       reminder_rules: tenant.reminder_rules,
     });
+    if (error) {
+      console.error("Supabase Tenant Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Tenant Sync Error:", err);
+    console.error("Supabase Tenant Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistUserToSupabase(user: User): Promise<void> {
+export async function persistUserToSupabase(user: User): Promise<SyncResult> {
   try {
-    await supabase.from("users").upsert({
+    const { error } = await supabase.from("users").upsert({
       id: user.id,
       tenant_id: user.tenant_id,
       name: user.name,
@@ -42,14 +53,20 @@ export async function persistUserToSupabase(user: User): Promise<void> {
       clock_in_date: user.clock_in_date,
       clock_in_location: user.clock_in_location,
     });
+    if (error) {
+      console.error("Supabase User Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase User Sync Error:", err);
+    console.error("Supabase User Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistCustomerToSupabase(customer: Customer): Promise<void> {
+export async function persistCustomerToSupabase(customer: Customer): Promise<SyncResult> {
   try {
-    await supabase.from("customers").upsert({
+    const { error } = await supabase.from("customers").upsert({
       id: customer.id,
       tenant_id: customer.tenant_id,
       name: customer.name,
@@ -62,14 +79,20 @@ export async function persistCustomerToSupabase(customer: Customer): Promise<voi
       last_order_at: customer.last_order_at,
       churn_status: customer.churn_status,
     });
+    if (error) {
+      console.error("Supabase Customer Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Customer Sync Error:", err);
+    console.error("Supabase Customer Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistProductServiceToSupabase(item: ProductService): Promise<void> {
+export async function persistProductServiceToSupabase(item: ProductService): Promise<SyncResult> {
   try {
-    await supabase.from("products_services").upsert({
+    const { error } = await supabase.from("products_services").upsert({
       id: item.id,
       tenant_id: item.tenant_id,
       name: item.name,
@@ -82,22 +105,34 @@ export async function persistProductServiceToSupabase(item: ProductService): Pro
       is_dead_stock: item.is_dead_stock,
       last_sold_at: item.last_sold_at,
     });
+    if (error) {
+      console.error("Supabase Product/Service Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Product/Service Sync Error:", err);
+    console.error("Supabase Product/Service Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function deleteProductServiceFromSupabase(id: string): Promise<void> {
+export async function deleteProductServiceFromSupabase(id: string): Promise<SyncResult> {
   try {
-    await supabase.from("products_services").delete().eq("id", id);
+    const { error } = await supabase.from("products_services").delete().eq("id", id);
+    if (error) {
+      console.error("Supabase Product/Service Delete Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Product/Service Delete Error:", err);
+    console.error("Supabase Product/Service Delete Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistExpenseToSupabase(expense: OperationalExpense): Promise<void> {
+export async function persistExpenseToSupabase(expense: OperationalExpense): Promise<SyncResult> {
   try {
-    await supabase.from("operational_expenses").upsert({
+    const { error } = await supabase.from("operational_expenses").upsert({
       id: expense.id,
       tenant_id: expense.tenant_id,
       title: expense.title,
@@ -106,22 +141,34 @@ export async function persistExpenseToSupabase(expense: OperationalExpense): Pro
       expense_date: expense.expense_date,
       notes: expense.notes,
     });
+    if (error) {
+      console.error("Supabase Expense Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Expense Sync Error:", err);
+    console.error("Supabase Expense Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function deleteExpenseFromSupabase(id: string): Promise<void> {
+export async function deleteExpenseFromSupabase(id: string): Promise<SyncResult> {
   try {
-    await supabase.from("operational_expenses").delete().eq("id", id);
+    const { error } = await supabase.from("operational_expenses").delete().eq("id", id);
+    if (error) {
+      console.error("Supabase Expense Delete Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Expense Delete Error:", err);
+    console.error("Supabase Expense Delete Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistTransactionToSupabase(tx: Transaction): Promise<void> {
+export async function persistTransactionToSupabase(tx: Transaction): Promise<SyncResult> {
   try {
-    await supabase.from("transactions").upsert({
+    const { error } = await supabase.from("transactions").upsert({
       id: tx.id,
       tenant_id: tx.tenant_id,
       invoice_number: tx.invoice_number,
@@ -146,6 +193,11 @@ export async function persistTransactionToSupabase(tx: Transaction): Promise<voi
       created_at: tx.created_at,
     });
 
+    if (error) {
+      console.error("Supabase Transaction Sync Error:", error);
+      return { success: false, error };
+    }
+
     if (tx.items && tx.items.length > 0) {
       const itemsPayload = tx.items.map((item) => ({
         id: item.id,
@@ -159,16 +211,22 @@ export async function persistTransactionToSupabase(tx: Transaction): Promise<voi
         quantity: item.quantity,
         gross_margin: item.gross_margin,
       }));
-      await supabase.from("transaction_items").upsert(itemsPayload);
+      const { error: itemError } = await supabase.from("transaction_items").upsert(itemsPayload);
+      if (itemError) {
+        console.error("Supabase Transaction Items Sync Error:", itemError);
+        return { success: false, error: itemError };
+      }
     }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Transaction Sync Error:", err);
+    console.error("Supabase Transaction Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistCrmLogToSupabase(log: CrmLog): Promise<void> {
+export async function persistCrmLogToSupabase(log: CrmLog): Promise<SyncResult> {
   try {
-    await supabase.from("crm_logs").upsert({
+    const { error } = await supabase.from("crm_logs").upsert({
       id: log.id,
       tenant_id: log.tenant_id,
       customer_id: log.customer_id,
@@ -183,14 +241,20 @@ export async function persistCrmLogToSupabase(log: CrmLog): Promise<void> {
       converted_amount: log.converted_amount,
       converted_at: log.converted_at,
     });
+    if (error) {
+      console.error("Supabase CRM Log Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase CRM Log Sync Error:", err);
+    console.error("Supabase CRM Log Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistPromoInstructionToSupabase(promo: PromoInstruction): Promise<void> {
+export async function persistPromoInstructionToSupabase(promo: PromoInstruction): Promise<SyncResult> {
   try {
-    await supabase.from("promo_instructions").upsert({
+    const { error } = await supabase.from("promo_instructions").upsert({
       id: promo.id,
       tenant_id: promo.tenant_id,
       product_id: promo.product_id,
@@ -200,14 +264,20 @@ export async function persistPromoInstructionToSupabase(promo: PromoInstruction)
       status: promo.status,
       created_at: promo.created_at,
     });
+    if (error) {
+      console.error("Supabase Promo Instruction Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Promo Instruction Sync Error:", err);
+    console.error("Supabase Promo Instruction Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
 
-export async function persistProspectLeadToSupabase(lead: ProspectLead): Promise<void> {
+export async function persistProspectLeadToSupabase(lead: ProspectLead): Promise<SyncResult> {
   try {
-    await supabase.from("prospect_leads").upsert({
+    const { error } = await supabase.from("prospect_leads").upsert({
       id: lead.id,
       name: lead.name,
       email: lead.email,
@@ -216,7 +286,13 @@ export async function persistProspectLeadToSupabase(lead: ProspectLead): Promise
       status: lead.status,
       created_at: lead.created_at,
     });
+    if (error) {
+      console.error("Supabase Prospect Lead Sync Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
   } catch (err) {
-    console.error("Supabase Prospect Lead Sync Error:", err);
+    console.error("Supabase Prospect Lead Sync Exception:", err);
+    return { success: false, error: err };
   }
 }
