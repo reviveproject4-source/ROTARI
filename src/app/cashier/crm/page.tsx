@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
-import { WhatsAppSendModal } from "@/components/whatsapp-send-modal";
+import { openWhatsAppChat } from "@/lib/whatsapp";
 import { 
   MessageSquareText, 
   Send, 
@@ -34,19 +34,6 @@ export default function CashierCrmPage() {
   const [promoPhotoPreview, setPromoPhotoPreview] = useState<string | null>(null);
   const [broadcastSuccess, setBroadcastSuccess] = useState<boolean>(false);
 
-  const [waModalData, setWaModalData] = useState<{ 
-    isOpen: boolean; 
-    phone: string; 
-    message: string; 
-    recipientName: string;
-    onConfirmLog?: () => void;
-  }>({
-    isOpen: false,
-    phone: "",
-    message: "",
-    recipientName: "",
-  });
-
   const selectedTargetCustomer = customers.find((c) => c.id === selectedTargetCustomerId) || customers[0];
 
   // Handle Photo Attachment (Default Galeri / Kamera HP)
@@ -73,47 +60,35 @@ export default function CashierCrmPage() {
 
     const finalMessage = `${customPromoMessage}\n\n----------------------------\n*Outlet:* ${tenant.business_name}\n*Alamat:* ${tenant.address}`;
 
-    setWaModalData({
-      isOpen: true,
-      phone: selectedTargetCustomer.phone,
-      message: finalMessage,
-      recipientName: selectedTargetCustomer.name,
-      onConfirmLog: () => {
-        addCrmLog({
-          customer_id: selectedTargetCustomer.id,
-          customer_name: selectedTargetCustomer.name,
-          customer_phone: selectedTargetCustomer.phone,
-          cashier_name: currentUser.name,
-          type: selectedTargetCustomer.churn_status === "lost_90" ? "retention_90" : "retention_45",
-          message_content: finalMessage,
-        });
-        setBroadcastSuccess(true);
-        setTimeout(() => setBroadcastSuccess(false), 3500);
-      }
+    addCrmLog({
+      customer_id: selectedTargetCustomer.id,
+      customer_name: selectedTargetCustomer.name,
+      customer_phone: selectedTargetCustomer.phone,
+      cashier_name: currentUser.name,
+      type: selectedTargetCustomer.churn_status === "lost_90" ? "retention_90" : "retention_45",
+      message_content: finalMessage,
     });
+    setBroadcastSuccess(true);
+    setTimeout(() => setBroadcastSuccess(false), 3500);
+
+    openWhatsAppChat(selectedTargetCustomer.phone, finalMessage);
   };
 
   const handleSendWaReminder = (cust: any, type: 'retention_45' | 'retention_90') => {
     const message = customPromoMessage || `Halo Kak ${cust.name}, kami rindu pelayanan sepatu/barang kesayangan Anda di *${tenant.business_name}*!\n\nKhusus hari ini, dapatkan *Voucher Diskon Special Retensi Pelanggan Setia*!\n\nAlamat Toko: ${tenant.address}\n\nBalas pesan ini untuk klaim voucher promo Anda!`;
 
-    setWaModalData({
-      isOpen: true,
-      phone: cust.phone,
-      message: message,
-      recipientName: cust.name,
-      onConfirmLog: () => {
-        addCrmLog({
-          customer_id: cust.id,
-          customer_name: cust.name,
-          customer_phone: cust.phone,
-          cashier_name: currentUser.name,
-          type,
-          message_content: message,
-        });
-        setBroadcastSuccess(true);
-        setTimeout(() => setBroadcastSuccess(false), 3500);
-      }
+    addCrmLog({
+      customer_id: cust.id,
+      customer_name: cust.name,
+      customer_phone: cust.phone,
+      cashier_name: currentUser.name,
+      type,
+      message_content: message,
     });
+    setBroadcastSuccess(true);
+    setTimeout(() => setBroadcastSuccess(false), 3500);
+
+    openWhatsAppChat(cust.phone, message);
   };
 
   return (
@@ -346,20 +321,6 @@ export default function CashierCrmPage() {
         </div>
       </div>
 
-      {/* WhatsApp Send Confirmation Modal */}
-      <WhatsAppSendModal
-        isOpen={waModalData.isOpen}
-        onClose={() => setWaModalData((prev) => ({ ...prev, isOpen: false }))}
-        phone={waModalData.phone}
-        message={waModalData.message}
-        recipientName={waModalData.recipientName}
-        title="Konfirmasi Pesan Promo / Reminder WA"
-        onSuccessOpened={() => {
-          if (waModalData.onConfirmLog) {
-            waModalData.onConfirmLog();
-          }
-        }}
-      />
     </div>
   );
 }
