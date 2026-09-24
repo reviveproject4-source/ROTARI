@@ -158,26 +158,56 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry", initialPromoInstructions));
   const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry", initialProspectLeads));
 
+  // Helper: Resolve User Profile & Tenant Identity from Supabase Auth Session
+  const resolveTenantUserFromSession = (sessionUser: any): { user: User | null; error?: string } => {
+    if (!sessionUser) return { user: null, error: "No active Auth session." };
+
+    const foundUser = users.find(
+      (u) => u.id === sessionUser.id || (u.email && u.email.toLowerCase() === sessionUser.email?.toLowerCase())
+    );
+
+    if (!foundUser) {
+      return { user: null, error: "Akun belum terdaftar di ROTARI." };
+    }
+
+    if (!foundUser.tenant_id) {
+      return { user: null, error: "User belum terikat dengan Tenant valid." };
+    }
+
+    const foundTenant = tenants.find((t) => t.id === foundUser.tenant_id);
+    if (!foundTenant) {
+      return { user: null, error: "Tenant tidak ditemukan." };
+    }
+
+    return { user: foundUser };
+  };
+
   // 1. Restore Active Session on Mount & Listen to Auth State Changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const found = users.find((u) => u.email === session.user.email || u.id === session.user.id);
-        if (found) {
-          setCurrentUser(found);
-          setActiveTenantId(found.tenant_id);
+        const { user, error } = resolveTenantUserFromSession(session.user);
+        if (user) {
+          setCurrentUser(user);
+          setActiveTenantId(user.tenant_id);
           setIsAuthenticated(true);
+        } else {
+          console.warn("Access Denied on Session Restore:", error);
+          setIsAuthenticated(false);
         }
       }
     }).catch(() => {});
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        const found = users.find((u) => u.email === session.user.email || u.id === session.user.id);
-        if (found) {
-          setCurrentUser(found);
-          setActiveTenantId(found.tenant_id);
+        const { user, error } = resolveTenantUserFromSession(session.user);
+        if (user) {
+          setCurrentUser(user);
+          setActiveTenantId(user.tenant_id);
           setIsAuthenticated(true);
+        } else {
+          console.warn("Access Denied on Auth State Change:", error);
+          setIsAuthenticated(false);
         }
       } else if (event === "SIGNED_OUT") {
         setCurrentUser(initialUsers[0]);
@@ -198,7 +228,20 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [users, tenants]);
+
+  // Anti-Spoofing Effect: Ensure activeTenantId is strictly derived from currentUser.tenant_id
+  useEffect(() => {
+    if (isAuthenticated && currentUser && (currentUser.role as string) !== "superadmin") {
+      if (activeTenantId !== currentUser.tenant_id) {
+        console.warn("Tenant spoofing detected. Reconciling activeTenantId to derived user tenant:", currentUser.tenant_id);
+        setActiveTenantId(currentUser.tenant_id);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("rotari_active_tenant_id", currentUser.tenant_id);
+        }
+      }
+    }
+  }, [isAuthenticated, currentUser, activeTenantId]);
 
   // Sync registries to SessionStorage
   useEffect(() => { setStorageItem("rotari_tenants_registry", tenants); }, [tenants]);
