@@ -322,7 +322,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         {/* Scrollable Main Content Canvas (pb-24 for Sticky Mobile Bottom Nav) */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 bg-slate-50 dark:bg-slate-950 relative">
           
-          {/* Trial Expiry Lock Screen (If Trial Expired and not on /super-admin or /demo-request) */}
+          {/* Trial Expiry Lock Screen */}
           {isTrialExpired && pathname !== '/super-admin' && pathname !== '/demo-request' ? (
             <div className="absolute inset-0 z-40 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md text-center space-y-4 border border-rose-200 shadow-2xl">
@@ -344,6 +344,36 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 </div>
               </div>
+            </div>
+          ) : currentUser.role === "cashier" && ['/', '/employees', '/inventory', '/expenses', '/crm', '/settings'].includes(pathname) ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-black text-2xl">
+                🛡️
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                Akses Ditolak — Fitur Khusus Owner
+              </h2>
+              <p className="text-xs text-slate-500 max-w-sm">
+                Akun Kasir (<strong>{currentUser.name}</strong>) tidak memiliki wewenang untuk mengakses halaman management ini.
+              </p>
+              <Link href="/pos" className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition">
+                Kembali ke POS Kasir
+              </Link>
+            </div>
+          ) : pathname === '/super-admin' && currentUser.id !== 'user-super-admin' && currentUser.email !== 'superadmin@rotari.id' ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-black text-2xl">
+                🔒
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                Akses Ditolak — Khusus Super Admin
+              </h2>
+              <p className="text-xs text-slate-500 max-w-sm">
+                Halaman ini dilindungi khusus untuk Super Admin Platform ROTARI.
+              </p>
+              <Link href="/" className="px-5 py-2.5 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 transition">
+                Kembali ke Dashboard Outlet
+              </Link>
             </div>
           ) : (
             children
