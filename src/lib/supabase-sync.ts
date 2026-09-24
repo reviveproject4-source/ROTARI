@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, PromoInstruction, ProspectLead } from "@/types";
 
 /**
- * Persistence layer for Supabase Project uzrqolqdqsispedbmtrl.
+ * Persistence layer for Supabase Project oluzsthlxjxxpukxkcry.
  * Returns explicit status object { success, error } for audit verification.
  */
 
