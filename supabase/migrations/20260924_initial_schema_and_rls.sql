@@ -207,18 +207,29 @@ CREATE POLICY "Tenant products UPDATE policy" ON public.products_services
 CREATE POLICY "Tenant products DELETE policy" ON public.products_services
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR OPERATIONAL_EXPENSES
+-- Helper Function: Get Role of Current Authenticated User
+CREATE OR REPLACE FUNCTION public.get_auth_user_role()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT role FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
+$$;
+
+-- POLICIES FOR OPERATIONAL_EXPENSES (Restricted to Owner role)
 CREATE POLICY "Tenant expenses SELECT policy" ON public.operational_expenses
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
 CREATE POLICY "Tenant expenses INSERT policy" ON public.operational_expenses
-  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
 CREATE POLICY "Tenant expenses UPDATE policy" ON public.operational_expenses
-  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner')
+  WITH CHECK (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
 CREATE POLICY "Tenant expenses DELETE policy" ON public.operational_expenses
-  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
 -- POLICIES FOR TRANSACTIONS
 CREATE POLICY "Tenant transactions SELECT policy" ON public.transactions
