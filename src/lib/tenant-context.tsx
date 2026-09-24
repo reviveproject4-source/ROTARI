@@ -14,6 +14,7 @@ import {
   initialProspectLeads,
   SUPER_ADMIN_USER
 } from "./initial-data";
+import { supabase } from "./supabase";
 import {
   persistTenantToSupabase,
   persistUserToSupabase,
@@ -159,6 +160,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   // 1. Restore Active Session on Mount
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const found = users.find((u) => u.email === session.user.email || u.id === session.user.id);
+        if (found) {
+          setCurrentUser(found);
+          setActiveTenantId(found.tenant_id);
+          setIsAuthenticated(true);
+        }
+      }
+    }).catch(() => {});
+
     if (typeof window !== "undefined") {
       const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
       if (savedUserId) {
@@ -379,6 +391,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (matchedUser) {
+      if (matchedUser.email) {
+        supabase.auth.signInWithPassword({
+          email: matchedUser.email,
+          password: cleanPin,
+        }).catch((err) => {
+          console.warn("Supabase Auth signIn attempt:", err?.message || err);
+        });
+      }
       setCurrentUser(matchedUser);
       setActiveTenantId(matchedUser.tenant_id);
       setIsAuthenticated(true);
@@ -452,6 +472,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    supabase.auth.signOut().catch((err) => {
+      console.warn("Supabase Auth signOut error:", err?.message || err);
+    });
     setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("rotari_auth_user_id");
