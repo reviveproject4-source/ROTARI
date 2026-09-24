@@ -74,8 +74,8 @@ export async function persistCustomerToSupabase(customer: Customer): Promise<Syn
       email: customer.email,
       address: customer.address,
       notes: customer.notes,
-      total_orders: customer.total_orders,
-      total_spent: customer.total_spent,
+      total_orders: customer.total_orders || 0,
+      total_spent: customer.total_spent || 0,
       last_order_at: customer.last_order_at,
       churn_status: customer.churn_status,
     });
@@ -98,12 +98,9 @@ export async function persistProductServiceToSupabase(item: ProductService): Pro
       name: item.name,
       type: item.type,
       cost_price: item.cost_price,
-      sell_price: item.sell_price,
-      duration_minutes: item.duration_minutes,
-      raw_material_cost: item.raw_material_cost,
-      stock: item.stock,
-      is_dead_stock: item.is_dead_stock,
-      last_sold_at: item.last_sold_at,
+      selling_price: item.sell_price,
+      stock: item.stock || 0,
+      is_dead_stock: item.is_dead_stock || false,
     });
     if (error) {
       console.error("Supabase Product/Service Sync Error:", error);
@@ -135,11 +132,10 @@ export async function persistExpenseToSupabase(expense: OperationalExpense): Pro
     const { error } = await supabase.from("operational_expenses").upsert({
       id: expense.id,
       tenant_id: expense.tenant_id,
-      title: expense.title,
       category: expense.category,
       amount: expense.amount,
-      expense_date: expense.expense_date,
-      notes: expense.notes,
+      description: expense.title + (expense.notes ? ` - ${expense.notes}` : ""),
+      date: expense.expense_date,
     });
     if (error) {
       console.error("Supabase Expense Sync Error:", error);
@@ -172,50 +168,24 @@ export async function persistTransactionToSupabase(tx: Transaction): Promise<Syn
       id: tx.id,
       tenant_id: tx.tenant_id,
       invoice_number: tx.invoice_number,
-      customer_id: tx.customer_id,
-      customer_name: tx.customer_name,
-      customer_phone: tx.customer_phone,
+      customer_id: tx.customer_id || null,
+      customer_name: tx.customer_name || null,
+      customer_phone: tx.customer_phone || null,
+      items: tx.items,
+      subtotal: tx.subtotal,
+      discount: tx.discount_amount || 0,
+      total_amount: tx.total_amount,
+      payment_method: tx.payment_method,
+      payment_status: tx.status,
+      order_status: tx.work_status,
       cashier_id: tx.cashier_id,
       cashier_name: tx.cashier_name,
-      photo_url: tx.photo_url,
-      work_status: tx.work_status,
-      item_notes: tx.item_notes,
-      subtotal: tx.subtotal,
-      discount_type: tx.discount_type,
-      discount_value: tx.discount_value,
-      discount_amount: tx.discount_amount,
-      total_amount: tx.total_amount,
-      paid_amount: tx.paid_amount,
-      status: tx.status,
-      payment_method: tx.payment_method,
-      payment_stage: tx.payment_stage,
-      crm_attributed_log_id: tx.crm_attributed_log_id,
       created_at: tx.created_at,
     });
 
     if (error) {
       console.error("Supabase Transaction Sync Error:", error);
       return { success: false, error };
-    }
-
-    if (tx.items && tx.items.length > 0) {
-      const itemsPayload = tx.items.map((item) => ({
-        id: item.id,
-        tenant_id: tx.tenant_id,
-        transaction_id: tx.id,
-        item_id: item.item_id,
-        name: item.name,
-        type: item.type,
-        cost_price: item.cost_price,
-        unit_price: item.unit_price,
-        quantity: item.quantity,
-        gross_margin: item.gross_margin,
-      }));
-      const { error: itemError } = await supabase.from("transaction_items").upsert(itemsPayload);
-      if (itemError) {
-        console.error("Supabase Transaction Items Sync Error:", itemError);
-        return { success: false, error: itemError };
-      }
     }
     return { success: true };
   } catch (err) {
@@ -231,15 +201,11 @@ export async function persistCrmLogToSupabase(log: CrmLog): Promise<SyncResult> 
       tenant_id: log.tenant_id,
       customer_id: log.customer_id,
       customer_name: log.customer_name,
-      customer_phone: log.customer_phone,
-      cashier_name: log.cashier_name,
+      phone: log.customer_phone,
       type: log.type,
-      message_content: log.message_content,
-      sent_at: log.sent_at,
-      is_converted: log.is_converted,
-      converted_transaction_id: log.converted_transaction_id,
-      converted_amount: log.converted_amount,
-      converted_at: log.converted_at,
+      message: log.message_content,
+      status: log.is_converted ? 'converted' : 'sent',
+      created_at: log.sent_at,
     });
     if (error) {
       console.error("Supabase CRM Log Sync Error:", error);
@@ -257,11 +223,9 @@ export async function persistPromoInstructionToSupabase(promo: PromoInstruction)
     const { error } = await supabase.from("promo_instructions").upsert({
       id: promo.id,
       tenant_id: promo.tenant_id,
-      product_id: promo.product_id,
-      product_name: promo.product_name,
-      stock: promo.stock,
-      promo_message: promo.promo_message,
-      status: promo.status,
+      title: promo.product_name,
+      content: promo.promo_message,
+      is_active: promo.status === "active",
       created_at: promo.created_at,
     });
     if (error) {
