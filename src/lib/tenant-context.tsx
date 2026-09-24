@@ -531,6 +531,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("rotari_auth_user_id");
+      sessionStorage.removeItem("rotari_active_tenant_id");
+      sessionStorage.removeItem("rotari_sa_auth");
     }
   };
 
