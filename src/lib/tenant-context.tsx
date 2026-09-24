@@ -158,7 +158,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry", initialPromoInstructions));
   const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry", initialProspectLeads));
 
-  // 1. Restore Active Session on Mount
+  // 1. Restore Active Session on Mount & Listen to Auth State Changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -171,22 +171,32 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       }
     }).catch(() => {});
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        const found = users.find((u) => u.email === session.user.email || u.id === session.user.id);
+        if (found) {
+          setCurrentUser(found);
+          setActiveTenantId(found.tenant_id);
+          setIsAuthenticated(true);
+        }
+      } else if (event === "SIGNED_OUT") {
+        setCurrentUser(initialUsers[0]);
+        setActiveTenantId("tenant-001");
+        setIsAuthenticated(false);
+      }
+    });
+
     if (typeof window !== "undefined") {
       const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
-      if (savedUserId) {
-        if (savedUserId === SUPER_ADMIN_USER.id) {
-          setCurrentUser(SUPER_ADMIN_USER);
-          setIsAuthenticated(true);
-        } else {
-          const matchedUser = users.find((u) => u.id === savedUserId);
-          if (matchedUser) {
-            setCurrentUser(matchedUser);
-            setActiveTenantId(matchedUser.tenant_id);
-            setIsAuthenticated(true);
-          }
-        }
+      if (savedUserId && savedUserId === SUPER_ADMIN_USER.id) {
+        setCurrentUser(SUPER_ADMIN_USER);
+        setIsAuthenticated(true);
       }
     }
+
+    return () => {
+      subscription.unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
