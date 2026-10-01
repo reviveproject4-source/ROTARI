@@ -97,44 +97,51 @@ const tx = (
   discount_amount, total_amount, paid_amount, payment_method, payment_stage, items,
 });
 
-const premiumTransactionSpecs = Array.from({ length: 100 }, (_, index) => {
-  const amountBases = [1450000, 1050000, 950000, 750000, 250000, 180000, 325000, 1800000, 2200000, 1150000];
-  const addOns = [0, 75000, 125000, 180000, 250000, 325000];
-  const amount = amountBases[(index * 5 + 2) % amountBases.length] + addOns[index % addOns.length];
-  const days = Math.floor(index * 30 / 100);
-  const customerIndex = index % 8;
-  const customers = [
-    ["cust-1","Andi Pratama","081298765432"],["cust-2","Budi Santoso","085612345678"],
-    ["cust-3","Rina Maharani","081390112233"],["cust-4","Dimas Saputra","082112223333"],
-    ["cust-5","Nadia Putri","081277889900"],["cust-6","Fajar Ramadhan","085700112233"],
-    ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"]
-  ] as const;
-  const services = [
-    ["ps-11","Restoration Service Package"],["ps-2","Leather Treatment & Recolor"],
-    ["ps-3","Suede Restoration"],["ps-4","Midsole Repaint"],["ps-1","Deep Cleaning Premium"],
-    ["ps-5","Waterproof Protection"],["ps-12","Premium Aftercare Add-on"],
-    ["ps-14","Premium Bag Restoration"],["ps-13","Shoe Whitening Express"],["ps-11","Restoration Service Package"]
-  ] as const;
-  return [amount, days, customers[customerIndex][0], customers[customerIndex][1], customers[customerIndex][2], index % 2 === 0 ? "user-cashier-1" : "user-cashier-2", index % 2 === 0 ? "Siti Kasir" : "Agus Kasir", services[index % services.length][0], services[index % services.length][1]] as const;
+const dailyRevenueTargets = [4200000,4800000,3900000,5100000,4500000,4700000,3800000,4600000,5000000,4100000,4900000,4400000,5200000,3700000,4600000,4300000,4900000,5100000,3800000,4700000,4500000,5000000,4000000,4800000,4400000,5200000,3900000,4600000,4300000,5000000];
+const serviceMix = [
+  ["ps-11","Full Sneaker Restoration",1950000,420000],
+  ["ps-2","Leather Treatment & Recolor",1250000,260000],
+  ["ps-3","Suede Restoration",1100000,235000],
+  ["ps-4","Midsole Repaint",875000,185000],
+  ["ps-14","Premium Bag Restoration",2450000,520000],
+  ["ps-1","Deep Cleaning Premium",275000,65000],
+  ["ps-12","Premium Aftercare Package",375000,95000],
+] as const;
+
+const premiumTransactionSpecs = dailyRevenueTargets.flatMap((dailyTotal, day) => {
+  const first = Math.round((dailyTotal * (day % 3 === 0 ? 0.56 : day % 3 === 1 ? 0.62 : 0.48)) / 25000) * 25000;
+  const second = dailyTotal - first;
+  return [first, second].map((amount, slot) => {
+    const customers = [
+      ["cust-1","Andi Pratama","081298765432"],["cust-2","Budi Santoso","085612345678"],
+      ["cust-3","Rina Maharani","081390112233"],["cust-4","Dimas Saputra","082112223333"],
+      ["cust-5","Nadia Putri","081277889900"],["cust-6","Fajar Ramadhan","085700112233"],
+      ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"]
+    ] as const;
+    const customer = customers[(day * 2 + slot) % customers.length];
+    const service = serviceMix[(day * 2 + slot) % serviceMix.length];
+    return [amount, day, customer, service] as const;
+  });
 });
 
 const demoPaymentMethods = ["qris", "transfer", "cash"] as const;
 const demoWorkStatuses = ["completed", "completed", "ready_for_pickup"] as const;
 
-export const initialTransactions: Transaction[] = premiumTransactionSpecs.map(([amount, days, customer_id, customer_name, customer_phone, cashier_id, cashier_name, service_id, service_name], index) => {
-  const serviceAmount = amount;
-  const materialCostRate = service_id === "ps-14" ? 0.22 : service_id === "ps-13" ? 0.20 : 0.21;
-  const serviceCost = Math.round(amount * materialCostRate / 5000) * 5000;
-  const addOn = index % 4 === 0 ? 75000 : index % 7 === 0 ? 125000 : 0;
-  const totalAmount = amount + addOn;
-  const addOnCost = addOn > 0 ? 25000 : 0;
+export const initialTransactions: Transaction[] = premiumTransactionSpecs.map(([amount, days, customer, service], index) => {
+  const [customer_id, customer_name, customer_phone] = customer;
+  const [service_id, service_name, catalogPrice, catalogCost] = service;
+  const primaryPrice = Math.min(amount, catalogPrice);
+  const primaryCost = Math.max(catalogCost, Math.round((primaryPrice * catalogCost / catalogPrice) / 5000) * 5000);
+  const extra = amount - primaryPrice;
+  const extraCost = extra > 0 ? Math.round(extra * 0.25 / 5000) * 5000 : 0;
   return tx(
-    `tx-${3001 + index}`, `INV/2026/${String(100 - index).padStart(3, "0")}`, customer_id, customer_name, customer_phone,
-    cashier_id, cashier_name, days, "paid", demoWorkStatuses[index % demoWorkStatuses.length],
-    totalAmount, 0, totalAmount, totalAmount, demoPaymentMethods[index % demoPaymentMethods.length], "full",
+    `tx-${3001 + index}`, `INV/2026/${String(200 - index).padStart(3, "0")}`, customer_id, customer_name, customer_phone,
+    index % 2 === 0 ? "user-cashier-1" : "user-cashier-2", index % 2 === 0 ? "Siti Kasir" : "Agus Kasir",
+    days, "paid", demoWorkStatuses[index % demoWorkStatuses.length],
+    amount, 0, amount, amount, demoPaymentMethods[index % demoPaymentMethods.length], "full",
     [
-      { id:`item-${3001 + index}a`, item_id:service_id, name:service_name, type:"service", quantity:1, cost_price:serviceCost, unit_price:serviceAmount, gross_margin:serviceAmount - serviceCost },
-      ...(addOn > 0 ? [{ id:`item-${3001 + index}b`, item_id:"ps-12", name:"Premium Aftercare Add-on", type:"service" as const, quantity:1, cost_price:addOnCost, unit_price:addOn, gross_margin:addOn - addOnCost }] : [])
+      { id:`item-${3001 + index}a`, item_id:service_id, name:service_name, type:"service", quantity:1, cost_price:primaryCost, unit_price:primaryPrice, gross_margin:primaryPrice-primaryCost },
+      ...(extra > 0 ? [{ id:`item-${3001 + index}b`, item_id:"ps-12", name:"Premium Aftercare Package", type:"service" as const, quantity:1, cost_price:extraCost, unit_price:extra, gross_margin:extra-extraCost }] : [])
     ]
   );
 });
