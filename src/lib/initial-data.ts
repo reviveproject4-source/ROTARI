@@ -60,14 +60,14 @@ export const initialProductsServices: ProductService[] = [
 ];
 
 export const initialCustomers: Customer[] = [
-  { id: "cust-1", tenant_id: "tenant-001", name: "Andi Pratama", phone: "081298765432", email: "andi.pratama@example.com", address: "BSD City, Tangerang Selatan", total_orders: 13, total_spent: 13850000, last_order_at: daysAgo(0), churn_status: "active" },
-  { id: "cust-2", tenant_id: "tenant-001", name: "Budi Santoso", phone: "085612345678", email: "budi.santoso@example.com", address: "Cikokol, Tangerang", total_orders: 13, total_spent: 25795000, last_order_at: daysAgo(1), churn_status: "active" },
-  { id: "cust-3", tenant_id: "tenant-001", name: "Rina Maharani", phone: "081390112233", email: "rina.maharani@example.com", address: "Alam Sutera, Tangerang Selatan", total_orders: 13, total_spent: 13975000, last_order_at: daysAgo(2), churn_status: "active" },
-  { id: "cust-4", tenant_id: "tenant-001", name: "Dimas Saputra", phone: "082112223333", email: "dimas.saputra@example.com", address: "Karawaci, Tangerang", total_orders: 13, total_spent: 25900000, last_order_at: daysAgo(3), churn_status: "active" },
-  { id: "cust-5", tenant_id: "tenant-001", name: "Nadia Putri", phone: "081277889900", email: "nadia.putri@example.com", address: "Gading Serpong, Tangerang", total_orders: 12, total_spent: 12900000, last_order_at: daysAgo(4), churn_status: "active" },
-  { id: "cust-6", tenant_id: "tenant-001", name: "Fajar Ramadhan", phone: "085700112233", email: "fajar.ramadhan@example.com", address: "Cipondoh, Tangerang", total_orders: 12, total_spent: 23920000, last_order_at: daysAgo(5), churn_status: "active" },
-  { id: "cust-7", tenant_id: "tenant-001", name: "Kevin Wijaya", phone: "081188776655", email: "kevin.wijaya@example.com", address: "Modernland, Tangerang", total_orders: 12, total_spent: 12900000, last_order_at: daysAgo(6), churn_status: "active" },
-  { id: "cust-8", tenant_id: "tenant-001", name: "Salsa Amelia", phone: "082233445566", email: "salsa.amelia@example.com", address: "Lippo Village, Tangerang", total_orders: 12, total_spent: 23920000, last_order_at: daysAgo(7), churn_status: "active" },
+  { id: "cust-1", tenant_id: "tenant-001", name: "Andi Pratama", phone: "081298765432", email: "andi.pratama@example.com", address: "BSD City, Tangerang Selatan", total_orders: 13, total_spent: 13325000, last_order_at: daysAgo(0), churn_status: "active" },
+  { id: "cust-2", tenant_id: "tenant-001", name: "Budi Santoso", phone: "085612345678", email: "budi.santoso@example.com", address: "Cikokol, Tangerang", total_orders: 13, total_spent: 23525000, last_order_at: daysAgo(1), churn_status: "active" },
+  { id: "cust-3", tenant_id: "tenant-001", name: "Rina Maharani", phone: "081390112233", email: "rina.maharani@example.com", address: "Alam Sutera, Tangerang Selatan", total_orders: 13, total_spent: 12600000, last_order_at: daysAgo(2), churn_status: "active" },
+  { id: "cust-4", tenant_id: "tenant-001", name: "Dimas Saputra", phone: "082112223333", email: "dimas.saputra@example.com", address: "Karawaci, Tangerang", total_orders: 13, total_spent: 23650000, last_order_at: daysAgo(3), churn_status: "active" },
+  { id: "cust-5", tenant_id: "tenant-001", name: "Nadia Putri", phone: "081277889900", email: "nadia.putri@example.com", address: "Gading Serpong, Tangerang", total_orders: 12, total_spent: 12300000, last_order_at: daysAgo(4), churn_status: "active" },
+  { id: "cust-6", tenant_id: "tenant-001", name: "Fajar Ramadhan", phone: "085700112233", email: "fajar.ramadhan@example.com", address: "Cipondoh, Tangerang", total_orders: 12, total_spent: 21850000, last_order_at: daysAgo(5), churn_status: "active" },
+  { id: "cust-7", tenant_id: "tenant-001", name: "Kevin Wijaya", phone: "081188776655", email: "kevin.wijaya@example.com", address: "Modernland, Tangerang", total_orders: 12, total_spent: 11650000, last_order_at: daysAgo(6), churn_status: "active" },
+  { id: "cust-8", tenant_id: "tenant-001", name: "Salsa Amelia", phone: "082233445566", email: "salsa.amelia@example.com", address: "Lippo Village, Tangerang", total_orders: 12, total_spent: 21850000, last_order_at: daysAgo(7), churn_status: "active" },
   { id: "cust-9", tenant_id: "tenant-001", name: "Yoga Kurniawan", phone: "081355667788", email: "yoga.kurniawan@example.com", address: "Pamulang, Tangerang Selatan", total_orders: 8, total_spent: 5200000, last_order_at: daysAgo(47), churn_status: "at_risk_45" },
   { id: "cust-10", tenant_id: "tenant-001", name: "Maya Lestari", phone: "089612345678", email: "maya.lestari@example.com", address: "Bintaro, Tangerang Selatan", total_orders: 5, total_spent: 3100000, last_order_at: daysAgo(96), churn_status: "lost_90" },
 ];
@@ -155,8 +155,8 @@ const crmCustomerPool = [
   ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"],["cust-9","Yoga Kurniawan","081355667788"],["cust-10","Maya Lestari","089612345678"]
 ] as const;
 
-const crmConversions = [0, 1, 3, 5, 7];
-export const initialCrmLogs: CrmLog[] = Array.from({ length: 40 }, (_, index) => {
+const crmConversions = [0, 1, 3, 5, 7, 12, 18, 24];
+export const initialCrmLogs: CrmLog[] = Array.from({ length: 60 }, (_, index) => {
   const [customer_id, customer_name, customer_phone] = crmCustomerPool[index % crmCustomerPool.length];
   const convertedIndex = crmConversions[index % crmConversions.length];
   const is_converted = index < crmConversions.length;
