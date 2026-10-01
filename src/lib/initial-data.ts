@@ -43,20 +43,20 @@ export const initialUsers: User[] = [
 ];
 
 export const initialProductsServices: ProductService[] = [
-  { id: "ps-1", tenant_id: "tenant-001", name: "Deep Cleaning Premium", type: "service", cost_price: 45000, sell_price: 250000, duration_minutes: 180, raw_material_cost: 28000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(0) },
-  { id: "ps-2", tenant_id: "tenant-001", name: "Leather Treatment & Recolor", type: "service", cost_price: 210000, sell_price: 1050000, duration_minutes: 1440, raw_material_cost: 135000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(1) },
-  { id: "ps-3", tenant_id: "tenant-001", name: "Suede Restoration", type: "service", cost_price: 185000, sell_price: 950000, duration_minutes: 1440, raw_material_cost: 115000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(2) },
-  { id: "ps-4", tenant_id: "tenant-001", name: "Midsole Repaint", type: "service", cost_price: 155000, sell_price: 750000, duration_minutes: 720, raw_material_cost: 95000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(3) },
-  { id: "ps-5", tenant_id: "tenant-001", name: "Waterproof Protection", type: "service", cost_price: 35000, sell_price: 180000, duration_minutes: 90, raw_material_cost: 22000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(4) },
-  { id: "ps-6", tenant_id: "tenant-001", name: "Premium Sneaker Cleaner 250ml", type: "product", cost_price: 22000, sell_price: 45000, stock: 126, is_dead_stock: false, last_sold_at: daysAgo(1) },
-  { id: "ps-7", tenant_id: "tenant-001", name: "Suede & Nubuck Brush", type: "product", cost_price: 18000, sell_price: 35000, stock: 74, is_dead_stock: false, last_sold_at: daysAgo(4) },
-  { id: "ps-8", tenant_id: "tenant-001", name: "Leather Conditioner 100ml", type: "product", cost_price: 32000, sell_price: 65000, stock: 46, is_dead_stock: false, last_sold_at: daysAgo(9) },
-  { id: "ps-9", tenant_id: "tenant-001", name: "Premium Sneaker Box", type: "product", cost_price: 15000, sell_price: 30000, stock: 38, is_dead_stock: false, last_sold_at: daysAgo(15) },
+  { id: "ps-1", tenant_id: "tenant-001", name: "Deep Cleaning Premium", type: "service", cost_price: 65000, sell_price: 275000, duration_minutes: 180, raw_material_cost: 42000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(0) },
+  { id: "ps-2", tenant_id: "tenant-001", name: "Leather Treatment & Recolor", type: "service", cost_price: 260000, sell_price: 1250000, duration_minutes: 1440, raw_material_cost: 175000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(1) },
+  { id: "ps-3", tenant_id: "tenant-001", name: "Suede Restoration", type: "service", cost_price: 235000, sell_price: 1100000, duration_minutes: 1440, raw_material_cost: 155000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(2) },
+  { id: "ps-4", tenant_id: "tenant-001", name: "Midsole Repaint", type: "service", cost_price: 185000, sell_price: 875000, duration_minutes: 720, raw_material_cost: 120000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(3) },
+  { id: "ps-5", tenant_id: "tenant-001", name: "Waterproof Protection", type: "service", cost_price: 55000, sell_price: 225000, duration_minutes: 90, raw_material_cost: 35000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(4) },
+  { id: "ps-6", tenant_id: "tenant-001", name: "Premium Sneaker Cleaner 250ml", type: "product", cost_price: 42000, sell_price: 85000, stock: 126, is_dead_stock: false, last_sold_at: daysAgo(1) },
+  { id: "ps-7", tenant_id: "tenant-001", name: "Suede & Nubuck Brush", type: "product", cost_price: 35000, sell_price: 75000, stock: 74, is_dead_stock: false, last_sold_at: daysAgo(4) },
+  { id: "ps-8", tenant_id: "tenant-001", name: "Leather Conditioner 100ml", type: "product", cost_price: 52000, sell_price: 110000, stock: 46, is_dead_stock: false, last_sold_at: daysAgo(9) },
+  { id: "ps-9", tenant_id: "tenant-001", name: "Premium Sneaker Box", type: "product", cost_price: 28000, sell_price: 65000, stock: 38, is_dead_stock: false, last_sold_at: daysAgo(15) },
   { id: "ps-10", tenant_id: "tenant-001", name: "Old Cleaning Kit", type: "product", cost_price: 20000, sell_price: 40000, stock: 9, is_dead_stock: true, last_sold_at: daysAgo(72) },
-  { id: "ps-11", tenant_id: "tenant-001", name: "Restoration Service Package", type: "service", cost_price: 360000, sell_price: 1800000, duration_minutes: 2880, raw_material_cost: 225000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(1) },
-  { id: "ps-12", tenant_id: "tenant-001", name: "Premium Aftercare Add-on", type: "service", cost_price: 70000, sell_price: 325000, duration_minutes: 120, raw_material_cost: 45000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(0) },
-  { id: "ps-13", tenant_id: "tenant-001", name: "Shoe Whitening Express", type: "service", cost_price: 45000, sell_price: 225000, duration_minutes: 150, raw_material_cost: 28000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(31) },
-  { id: "ps-14", tenant_id: "tenant-001", name: "Premium Bag Restoration", type: "service", cost_price: 450000, sell_price: 2200000, duration_minutes: 4320, raw_material_cost: 285000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(2) },
+  { id: "ps-11", tenant_id: "tenant-001", name: "Full Sneaker Restoration", type: "service", cost_price: 420000, sell_price: 1950000, duration_minutes: 2880, raw_material_cost: 285000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(1) },
+  { id: "ps-12", tenant_id: "tenant-001", name: "Premium Aftercare Package", type: "service", cost_price: 95000, sell_price: 375000, duration_minutes: 150, raw_material_cost: 62000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(0) },
+  { id: "ps-13", tenant_id: "tenant-001", name: "Shoe Whitening Express", type: "service", cost_price: 60000, sell_price: 275000, duration_minutes: 150, raw_material_cost: 38000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(31) },
+  { id: "ps-14", tenant_id: "tenant-001", name: "Premium Bag Restoration", type: "service", cost_price: 520000, sell_price: 2450000, duration_minutes: 4320, raw_material_cost: 350000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(2) },
 ];
 
 export const initialCustomers: Customer[] = [
