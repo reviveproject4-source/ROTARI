@@ -137,7 +137,7 @@ function getStorageItemWithMerge<T extends { id: string }>(key: string, initialD
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Multi-Tenant Registries (Memory & SessionStorage)
-  const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItemWithMerge("rotari_tenants_registry", [initialTenant]));
+  const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItemWithMerge("rotari_tenants_registry_v2", [initialTenant]));
   const [activeTenantId, setActiveTenantId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("rotari_active_tenant_id") || "tenant-001";
@@ -145,18 +145,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return "tenant-001";
   });
 
-  const [users, setUsers] = useState<User[]>(() => getStorageItemWithMerge("rotari_users_registry", initialUsers));
+  const [users, setUsers] = useState<User[]>(() => getStorageItemWithMerge("rotari_users_registry_v2", initialUsers));
   const [currentUser, setCurrentUser] = useState<User>(() => initialUsers[0]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Repositories
-  const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItemWithMerge("rotari_products_registry", initialProductsServices));
-  const [allExpenses, setAllExpenses] = useState<OperationalExpense[]>(() => getStorageItemWithMerge("rotari_expenses_registry", initialExpenses));
-  const [allCustomers, setAllCustomers] = useState<Customer[]>(() => getStorageItemWithMerge("rotari_customers_registry", initialCustomers));
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => getStorageItemWithMerge("rotari_transactions_registry", initialTransactions));
-  const [allCrmLogs, setAllCrmLogs] = useState<CrmLog[]>(() => getStorageItemWithMerge("rotari_crm_logs_registry", initialCrmLogs));
-  const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry", initialPromoInstructions));
-  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry", initialProspectLeads));
+  const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItemWithMerge("rotari_products_registry_v2", initialProductsServices));
+  const [allExpenses, setAllExpenses] = useState<OperationalExpense[]>(() => getStorageItemWithMerge("rotari_expenses_registry_v2", initialExpenses));
+  const [allCustomers, setAllCustomers] = useState<Customer[]>(() => getStorageItemWithMerge("rotari_customers_registry_v2", initialCustomers));
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => getStorageItemWithMerge("rotari_transactions_registry_v2", initialTransactions));
+  const [allCrmLogs, setAllCrmLogs] = useState<CrmLog[]>(() => getStorageItemWithMerge("rotari_crm_logs_registry_v2", initialCrmLogs));
+  const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry_v2", initialPromoInstructions));
+  const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry_v2", initialProspectLeads));
 
   // Helper: Resolve User Profile & Tenant Identity from Supabase Auth Session
   const resolveTenantUserFromSession = (sessionUser: any): { user: User | null; error?: string } => {
@@ -244,15 +244,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, currentUser, activeTenantId]);
 
   // Sync registries to SessionStorage
-  useEffect(() => { setStorageItem("rotari_tenants_registry", tenants); }, [tenants]);
-  useEffect(() => { setStorageItem("rotari_users_registry", users); }, [users]);
-  useEffect(() => { setStorageItem("rotari_products_registry", allProductsServices); }, [allProductsServices]);
-  useEffect(() => { setStorageItem("rotari_expenses_registry", allExpenses); }, [allExpenses]);
-  useEffect(() => { setStorageItem("rotari_customers_registry", allCustomers); }, [allCustomers]);
-  useEffect(() => { setStorageItem("rotari_transactions_registry", allTransactions); }, [allTransactions]);
-  useEffect(() => { setStorageItem("rotari_crm_logs_registry", allCrmLogs); }, [allCrmLogs]);
-  useEffect(() => { setStorageItem("rotari_promo_instructions_registry", allPromoInstructions); }, [allPromoInstructions]);
-  useEffect(() => { setStorageItem("rotari_prospect_leads_registry", prospectLeads); }, [prospectLeads]);
+  useEffect(() => { setStorageItem("rotari_tenants_registry_v2", tenants); }, [tenants]);
+  useEffect(() => { setStorageItem("rotari_users_registry_v2", users); }, [users]);
+  useEffect(() => { setStorageItem("rotari_products_registry_v2", allProductsServices); }, [allProductsServices]);
+  useEffect(() => { setStorageItem("rotari_expenses_registry_v2", allExpenses); }, [allExpenses]);
+  useEffect(() => { setStorageItem("rotari_customers_registry_v2", allCustomers); }, [allCustomers]);
+  useEffect(() => { setStorageItem("rotari_transactions_registry_v2", allTransactions); }, [allTransactions]);
+  useEffect(() => { setStorageItem("rotari_crm_logs_registry_v2", allCrmLogs); }, [allCrmLogs]);
+  useEffect(() => { setStorageItem("rotari_promo_instructions_registry_v2", allPromoInstructions); }, [allPromoInstructions]);
+  useEffect(() => { setStorageItem("rotari_prospect_leads_registry_v2", prospectLeads); }, [prospectLeads]);
 
   // Derived Active Tenant
   const activeTenant = tenants.find((t) => t.id === activeTenantId) || tenants[0] || initialTenant;
