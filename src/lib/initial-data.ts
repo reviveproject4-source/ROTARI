@@ -120,6 +120,7 @@ export const initialExpenses: OperationalExpense[] = [
   { id:"exp-3", tenant_id:"tenant-001", title:"Bahan cleaning & chemical", amount:6245000, category:"variable", expense_date:dateAgo(6), notes:"Restock bahan cleaning dan treatment" },
   { id:"exp-4", tenant_id:"tenant-001", title:"Cat, pigment & finishing", amount:3985000, category:"variable", expense_date:dateAgo(12), notes:"Bahan recolor dan repaint" },
   { id:"exp-5", tenant_id:"tenant-001", title:"Packaging & pickup support", amount:2875000, category:"variable", expense_date:dateAgo(18), notes:"Packaging, label dan kebutuhan pickup" },
+  { id:"exp-6", tenant_id:"tenant-001", title:"Gaji & insentif tim operasional", amount:12750000, category:"fixed", expense_date:dateAgo(2), notes:"Gaji staf outlet, insentif pengerjaan dan tunjangan operasional" },
 ];
 
 const crmCustomerPool = [
@@ -127,22 +128,23 @@ const crmCustomerPool = [
   ["cust-4","Dimas Saputra","082112223333"],["cust-5","Nadia Putri","081277889900"],["cust-6","Fajar Ramadhan","085700112233"],
   ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"],["cust-9","Yoga Kurniawan","081355667788"],["cust-10","Maya Lestari","089612345678"]
 ] as const;
-const crmConversions = [0,3,6,9,12,16,20,24];
-export const initialCrmLogs: CrmLog[] = Array.from({ length: 34 }, (_, index) => {
+
+const crmConversions = [0, 1, 3, 5, 7];
+export const initialCrmLogs: CrmLog[] = Array.from({ length: 40 }, (_, index) => {
   const [customer_id, customer_name, customer_phone] = crmCustomerPool[index % crmCustomerPool.length];
   const convertedIndex = crmConversions[index % crmConversions.length];
-  const is_converted = index < 8;
+  const is_converted = index < crmConversions.length;
   const transaction = is_converted ? initialTransactions[convertedIndex] : undefined;
   return {
     id:`crm-${index + 1}`, tenant_id:"tenant-001", customer_id, customer_name, customer_phone,
     cashier_name:index % 2 === 0 ? "Siti Kasir" : "Agus Kasir",
-    type:index % 5 === 0 ? "retention_90" : "retention_45",
+    type:index % 6 === 0 ? "retention_90" : "retention_45",
     message_content:is_converted
       ? "Halo Kak, kami melihat sudah waktunya melakukan treatment berikutnya. Kalau berkenan, kami bisa bantu pilihkan layanan yang sesuai."
       : "Halo Kak, kami ingin follow up kondisi sepatu Kakak. Kalau membutuhkan treatment atau maintenance, kami siap membantu.",
-    sent_at:daysAgo(index % 28, 9 + (index % 5)),
+    sent_at:daysAgo((index * 2) % 28, 9 + (index % 5)),
     is_converted,
-    ...(transaction ? { converted_transaction_id:transaction.id, converted_amount:transaction.total_amount, converted_at:daysAgo(index % 28, 12) } : {})
+    ...(transaction ? { converted_transaction_id:transaction.id, converted_amount:transaction.total_amount, converted_at:daysAgo((index * 2) % 28, 12) } : {})
   };
 });
 
