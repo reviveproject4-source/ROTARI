@@ -29,8 +29,15 @@ export default function OwnerCrmPage() {
 
   // Detect slow-moving stock (is_dead_stock or >14 days without sale and stock > 0)
   const slowStockItems = productsServices.filter(
-    (ps) => ps.is_dead_stock || (ps.type === "product" && ps.stock > 0)
+    (ps) =>
+      ps.is_dead_stock ||
+      (ps.type === "product" && ps.stock > 25) ||
+      (ps.type === "service" && (!ps.last_sold_at || (Date.now() - new Date(ps.last_sold_at).getTime()) > 14 * 86400000))
   );
+
+  const convertedRate = totalWaSent > 0 ? (crmConvertedCount / totalWaSent) * 100 : 0;
+  const averageConvertedValue = crmConvertedCount > 0 ? crmConvertedAmount / crmConvertedCount : 0;
+  const totalRevenueForCrm = crmLogs.reduce((sum, log) => sum + (log.is_converted ? (log.converted_amount || 0) : 0), 0);
 
   const [selectedProductId, setSelectedProductId] = useState<string>(slowStockItems[0]?.id || "");
   const [promoMessageInput, setPromoMessageInput] = useState<string>("");
@@ -98,6 +105,31 @@ export default function OwnerCrmPage() {
             Rp {crmConvertedAmount.toLocaleString("id-ID")}
           </p>
           <span className="text-[11px] opacity-80">Omset langsung hasil konversi WA</span>
+        </div>
+      </div>
+
+      {/* CRM funnel */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-900 dark:text-slate-100">Ringkasan Funnel CRM</h2>
+          <span className="text-[11px] text-slate-400">Pesan → Kunjungan → Transaksi</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Conversion Rate</span>
+            <p className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">{convertedRate.toFixed(1)}%</p>
+            <p className="text-[11px] text-slate-500 mt-1">{crmConvertedCount} dari {totalWaSent} pesan menjadi transaksi</p>
+          </div>
+          <div className="rounded-xl bg-purple-50 dark:bg-purple-950/30 p-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-500">Rata-rata Nilai Konversi</span>
+            <p className="text-2xl font-black text-purple-700 dark:text-purple-300 mt-1">Rp {Math.round(averageConvertedValue).toLocaleString("id-ID")}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Per transaksi yang teratribusi CRM</p>
+          </div>
+          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Omset Teratribusi CRM</span>
+            <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">Rp {totalRevenueForCrm.toLocaleString("id-ID")}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Hanya transaksi yang punya jejak konversi</p>
+          </div>
         </div>
       </div>
 
