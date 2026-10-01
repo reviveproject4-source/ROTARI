@@ -107,7 +107,7 @@ export default function OwnerDashboard() {
       </div>
 
       {/* 4 Financial Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         
         {/* Total Omset */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
@@ -134,7 +134,21 @@ export default function OwnerDashboard() {
           <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
             Rp {totalOperationalExpenses.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400 font-medium">Biaya Fixed &amp; Variable Costs</span>
+          <span className="text-[11px] text-slate-400 font-medium">Termasuk gaji, sewa &amp; biaya operasional</span>
+        </div>
+
+        {/* Margin Kotor */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-extrabold uppercase tracking-wider">Margin Kotor</span>
+            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-sky-700 dark:text-sky-300">
+            Rp {(totalRevenue - totalHPP).toLocaleString("id-ID")}
+          </p>
+          <span className="text-[11px] text-slate-400 font-medium">Omset - HPP, sebelum gaji &amp; biaya operasional</span>
         </div>
 
         {/* Margin Bersih */}
