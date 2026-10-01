@@ -95,46 +95,46 @@ const tx = (
 
 export const initialTransactions: Transaction[] = [
   tx("tx-2001","INV/2026/041","cust-1","Andi Pratama","081298765432","user-cashier-1","Siti Kasir",0,"paid","completed",2600000,100000,2500000,2500000,"qris","full",[
-    { id:"item-2001a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:18000, unit_price:65000, gross_margin:47000 },
-    { id:"item-2001b", item_id:"ps-6", name:"Premium Sneaker Cleaner 250ml", type:"product", quantity:1, cost_price:22000, unit_price:45000, gross_margin:23000 },
+    { id:"item-2001a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:0, unit_price:65000, gross_margin:65000 },
+    { id:"item-2001b", item_id:"ps-6", name:"Premium Sneaker Cleaner 250ml", type:"product", quantity:1, cost_price:0, unit_price:45000, gross_margin:45000 },
   ]),
   tx("tx-2002","INV/2026/040","cust-3","Rina Maharani","081390112233","user-cashier-2","Agus Kasir",0,"paid","ready_for_pickup",2500000,0,2500000,2500000,"transfer","full",[
-    { id:"item-2002a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:35000, unit_price:175000, gross_margin:140000 },
+    { id:"item-2002a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:0, unit_price:175000, gross_margin:175000 },
   ]),
   tx("tx-2003","INV/2026/039","cust-2","Budi Santoso","085612345678","user-cashier-1","Siti Kasir",2,"paid","completed",7500000,0,7500000,7500000,"qris","full",[
-    { id:"item-2003a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:30000, unit_price:150000, gross_margin:120000 },
-    { id:"item-2003b", item_id:"ps-7", name:"Suede & Nubuck Brush", type:"product", quantity:1, cost_price:18000, unit_price:35000, gross_margin:17000 },
-    { id:"item-2003c", item_id:"ps-5", name:"Waterproof Protection", type:"service", quantity:1, cost_price:12000, unit_price:55000, gross_margin:43000 },
+    { id:"item-2003a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:0, unit_price:150000, gross_margin:150000 },
+    { id:"item-2003b", item_id:"ps-7", name:"Suede & Nubuck Brush", type:"product", quantity:1, cost_price:0, unit_price:35000, gross_margin:35000 },
+    { id:"item-2003c", item_id:"ps-5", name:"Waterproof Protection", type:"service", quantity:1, cost_price:0, unit_price:55000, gross_margin:55000 },
   ]),
   tx("tx-2004","INV/2026/038","cust-9","Yoga Kurniawan","081355667788","user-cashier-2","Agus Kasir",4,"paid","completed",7200000,0,7200000,7200000,"cash","full",[
-    { id:"item-2004a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:35000, unit_price:175000, gross_margin:140000 },
+    { id:"item-2004a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:0, unit_price:175000, gross_margin:175000 },
   ]),
   tx("tx-2005","INV/2026/037","cust-4","Dimas Saputra","082112223333","user-cashier-1","Siti Kasir",6,"paid","completed",7000000,0,7000000,7000000,"transfer","full",[
-    { id:"item-2005a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:25000, unit_price:135000, gross_margin:110000 },
-    { id:"item-2005b", item_id:"ps-6", name:"Premium Sneaker Cleaner 250ml", type:"product", quantity:1, cost_price:22000, unit_price:45000, gross_margin:23000 },
+    { id:"item-2005a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:0, unit_price:135000, gross_margin:135000 },
+    { id:"item-2005b", item_id:"ps-6", name:"Premium Sneaker Cleaner 250ml", type:"product", quantity:1, cost_price:0, unit_price:45000, gross_margin:45000 },
   ]),
   tx("tx-2006","INV/2026/036","cust-5","Nadia Putri","081277889900","user-cashier-2","Agus Kasir",8,"paid","completed",6800000,0,6800000,6800000,"cash","full",[
-    { id:"item-2006a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:18000, unit_price:65000, gross_margin:47000 },
-    { id:"item-2006b", item_id:"ps-5", name:"Waterproof Protection", type:"service", quantity:1, cost_price:12000, unit_price:55000, gross_margin:43000 },
+    { id:"item-2006a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:0, unit_price:65000, gross_margin:65000 },
+    { id:"item-2006b", item_id:"ps-5", name:"Waterproof Protection", type:"service", quantity:1, cost_price:0, unit_price:55000, gross_margin:55000 },
   ]),
   tx("tx-2007","INV/2026/035","cust-1","Andi Pratama","081298765432","user-cashier-1","Siti Kasir",10,"paid","completed",6600000,0,6600000,6600000,"transfer","full",[
-    { id:"item-2007a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:35000, unit_price:175000, gross_margin:140000 },
+    { id:"item-2007a", item_id:"ps-2", name:"Leather Treatment & Recolor", type:"service", quantity:1, cost_price:0, unit_price:175000, gross_margin:175000 },
   ]),
   tx("tx-2008","INV/2026/034","cust-10","Maya Lestari","089612345678","user-cashier-2","Agus Kasir",13,"paid","completed",6400000,0,6400000,6400000,"qris","full",[
-    { id:"item-2008a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:25000, unit_price:135000, gross_margin:110000 },
+    { id:"item-2008a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:0, unit_price:135000, gross_margin:135000 },
   ]),
   tx("tx-2009","INV/2026/033","cust-3","Rina Maharani","081390112233","user-cashier-1","Siti Kasir",16,"paid","completed",6200000,0,6200000,6200000,"cash","full",[
-    { id:"item-2009a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:18000, unit_price:65000, gross_margin:47000 },
-    { id:"item-2009b", item_id:"ps-7", name:"Suede & Nubuck Brush", type:"product", quantity:1, cost_price:18000, unit_price:35000, gross_margin:17000 },
+    { id:"item-2009a", item_id:"ps-1", name:"Deep Cleaning Premium", type:"service", quantity:1, cost_price:0, unit_price:65000, gross_margin:65000 },
+    { id:"item-2009b", item_id:"ps-7", name:"Suede & Nubuck Brush", type:"product", quantity:1, cost_price:0, unit_price:35000, gross_margin:35000 },
   ]),
   tx("tx-2010","INV/2026/032","cust-5","Nadia Putri","081277889900","user-cashier-2","Agus Kasir",20,"paid","completed",5800000,0,5800000,5800000,"transfer","full",[
-    { id:"item-2010a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:30000, unit_price:150000, gross_margin:120000 },
+    { id:"item-2010a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:0, unit_price:150000, gross_margin:150000 },
   ]),
   tx("tx-2011","INV/2026/031","cust-6","Fajar Ramadhan","085700112233","user-cashier-1","Siti Kasir",24,"paid","completed",5500000,0,5500000,5500000,"cash","full",[
-    { id:"item-2011a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:25000, unit_price:135000, gross_margin:110000 },
+    { id:"item-2011a", item_id:"ps-4", name:"Midsole Repaint", type:"service", quantity:1, cost_price:0, unit_price:135000, gross_margin:135000 },
   ]),
   tx("tx-2012","INV/2026/030","cust-8","Salsa Amelia","082233445566","user-cashier-2","Agus Kasir",28,"paid","completed",6000000,0,6000000,6000000,"transfer","full",[
-    { id:"item-2012a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:30000, unit_price:150000, gross_margin:120000 },
+    { id:"item-2012a", item_id:"ps-3", name:"Suede Restoration", type:"service", quantity:1, cost_price:0, unit_price:150000, gross_margin:150000 },
   ]),
 ];
 
@@ -143,7 +143,7 @@ export const initialExpenses: OperationalExpense[] = [
   { id:"exp-2", tenant_id:"tenant-001", title:"Listrik & air", amount:6500000, category:"fixed", expense_date:dateAgo(7), notes:"Tagihan operasional outlet" },
   { id:"exp-3", tenant_id:"tenant-001", title:"Cairan cleaner premium", amount:5800000, category:"variable", expense_date:dateAgo(6), notes:"Restock bahan cleaning" },
   { id:"exp-4", tenant_id:"tenant-001", title:"Cat & pigment leather", amount:4700000, category:"variable", expense_date:dateAgo(12), notes:"Bahan recolor dan repaint" },
-  { id:"exp-5", tenant_id:"tenant-001", title:"Packaging & shoe box", amount:4572000, category:"variable", expense_date:dateAgo(18), notes:"Packaging untuk order pelanggan" },
+  { id:"exp-5", tenant_id:"tenant-001", title:"Packaging & shoe box", amount:5000000, category:"variable", expense_date:dateAgo(18), notes:"Packaging untuk order pelanggan" },
 ];
 
 export const initialCrmLogs: CrmLog[] = [
