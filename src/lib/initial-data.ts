@@ -97,55 +97,135 @@ const tx = (
   discount_amount, total_amount, paid_amount, payment_method, payment_stage, items,
 });
 
-const dailyRevenueTargets = [4200000,4800000,3900000,5100000,4500000,4700000,3800000,4600000,5000000,4100000,4900000,4400000,5200000,3700000,4600000,4300000,4900000,5100000,3800000,4700000,4500000,5000000,4000000,4800000,4400000,5200000,3900000,4600000,4300000,5000000];
-const serviceMix = [
-  ["ps-11","Full Sneaker Restoration",1950000,420000],
-  ["ps-2","Leather Treatment & Recolor",1250000,260000],
-  ["ps-3","Suede Restoration",1100000,235000],
-  ["ps-4","Midsole Repaint",875000,185000],
-  ["ps-14","Premium Bag Restoration",2450000,520000],
-  ["ps-1","Deep Cleaning Premium",275000,65000],
-  ["ps-12","Premium Aftercare Package",375000,95000],
-] as const;
+type DemoItemSpec = {
+  item_id: string;
+  name: string;
+  type: "service" | "product";
+  quantity: number;
+  cost_price: number;
+  unit_price: number;
+};
 
-const premiumTransactionSpecs = dailyRevenueTargets.flatMap((dailyTotal, day) => {
-  const first = Math.round((dailyTotal * (day % 3 === 0 ? 0.56 : day % 3 === 1 ? 0.62 : 0.48)) / 25000) * 25000;
-  const second = dailyTotal - first;
-  return [first, second].map((amount, slot) => {
-    const customers = [
-      ["cust-1","Andi Pratama","081298765432"],["cust-2","Budi Santoso","085612345678"],
-      ["cust-3","Rina Maharani","081390112233"],["cust-4","Dimas Saputra","082112223333"],
-      ["cust-5","Nadia Putri","081277889900"],["cust-6","Fajar Ramadhan","085700112233"],
-      ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"]
-    ] as const;
-    const customer = customers[(day * 2 + slot) % customers.length];
-    const service = serviceMix[(day * 2 + slot) % serviceMix.length];
-    return [amount, day, customer, service] as const;
-  });
-});
+const demoItem = (
+  item_id: string,
+  name: string,
+  type: DemoItemSpec["type"],
+  cost_price: number,
+  unit_price: number,
+  quantity = 1
+): DemoItemSpec => ({ item_id, name, type, quantity, cost_price, unit_price });
+
+/*
+ * Demo transactions are built from real catalog prices.
+ * No transaction amount is invented separately from its line items.
+ * This keeps the dashboard, invoice and margin calculations internally consistent.
+ */
+const demoBundles: DemoItemSpec[][] = [
+  [
+    demoItem("ps-14", "Premium Bag Restoration", "service", 520000, 2450000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+  [
+    demoItem("ps-11", "Full Sneaker Restoration", "service", 420000, 1950000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+  [
+    demoItem("ps-2", "Leather Treatment & Recolor", "service", 260000, 1250000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+    demoItem("ps-8", "Leather Conditioner 100ml", "product", 52000, 110000),
+  ],
+  [
+    demoItem("ps-3", "Suede Restoration", "service", 235000, 1100000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+    demoItem("ps-7", "Suede & Nubuck Brush", "product", 35000, 75000),
+  ],
+  [
+    demoItem("ps-4", "Midsole Repaint", "service", 185000, 875000),
+    demoItem("ps-1", "Deep Cleaning Premium", "service", 65000, 275000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+  [
+    demoItem("ps-11", "Full Sneaker Restoration", "service", 420000, 1950000),
+    demoItem("ps-6", "Premium Sneaker Cleaner 250ml", "product", 42000, 85000),
+    demoItem("ps-9", "Premium Sneaker Box", "product", 28000, 65000),
+  ],
+  [
+    demoItem("ps-2", "Leather Treatment & Recolor", "service", 260000, 1250000),
+    demoItem("ps-1", "Deep Cleaning Premium", "service", 65000, 275000),
+    demoItem("ps-5", "Waterproof Protection", "service", 55000, 225000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+  [
+    demoItem("ps-3", "Suede Restoration", "service", 235000, 1100000),
+    demoItem("ps-1", "Deep Cleaning Premium", "service", 65000, 275000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+  [
+    demoItem("ps-14", "Premium Bag Restoration", "service", 520000, 2450000),
+    demoItem("ps-8", "Leather Conditioner 100ml", "product", 52000, 110000),
+    demoItem("ps-12", "Premium Aftercare Package", "service", 95000, 375000),
+  ],
+];
 
 const demoPaymentMethods = ["qris", "transfer", "cash"] as const;
 const demoWorkStatuses = ["completed", "completed", "ready_for_pickup"] as const;
+const demoCustomers = [
+  ["cust-1","Andi Pratama","081298765432"],
+  ["cust-2","Budi Santoso","085612345678"],
+  ["cust-3","Rina Maharani","081390112233"],
+  ["cust-4","Dimas Saputra","082112223333"],
+  ["cust-5","Nadia Putri","081277889900"],
+  ["cust-6","Fajar Ramadhan","085700112233"],
+  ["cust-7","Kevin Wijaya","081188776655"],
+  ["cust-8","Salsa Amelia","082233445566"],
+] as const;
 
-export const initialTransactions: Transaction[] = premiumTransactionSpecs.map(([amount, days, customer, service], index) => {
+/*
+ * 60 transactions / 30 days / 2 transactions per day.
+ * The monthly turnover is the natural sum of these service + product bundles:
+ * approximately Rp125.8M, not an arbitrary Rp200M target.
+ */
+export const initialTransactions: Transaction[] = Array.from({ length: 60 }, (_, index) => {
+  const days = Math.floor(index / 2);
+  const bundle = demoBundles[index % demoBundles.length];
+  const customer = demoCustomers[index % demoCustomers.length];
   const [customer_id, customer_name, customer_phone] = customer;
-  const [service_id, service_name, catalogPrice, catalogCost] = service;
-  const primaryPrice = Math.min(amount, catalogPrice);
-  const primaryCost = Math.max(catalogCost, Math.round((primaryPrice * catalogCost / catalogPrice) / 5000) * 5000);
-  const extra = amount - primaryPrice;
-  const extraCost = extra > 0 ? Math.round(extra * 0.25 / 5000) * 5000 : 0;
+  const subtotal = bundle.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+  const discount_amount = 0;
+  const total_amount = subtotal - discount_amount;
+  const paid_amount = total_amount;
+  const items = bundle.map((item, itemIndex) => ({
+    id: `item-${3001 + index}-${itemIndex + 1}`,
+    item_id: item.item_id,
+    name: item.name,
+    type: item.type,
+    quantity: item.quantity,
+    cost_price: item.cost_price,
+    unit_price: item.unit_price,
+    gross_margin: (item.unit_price - item.cost_price) * item.quantity,
+  }));
+
   return tx(
-    `tx-${3001 + index}`, `INV/2026/${String(200 - index).padStart(3, "0")}`, customer_id, customer_name, customer_phone,
-    index % 2 === 0 ? "user-cashier-1" : "user-cashier-2", index % 2 === 0 ? "Siti Kasir" : "Agus Kasir",
-    days, "paid", demoWorkStatuses[index % demoWorkStatuses.length],
-    amount, 0, amount, amount, demoPaymentMethods[index % demoPaymentMethods.length], "full",
-    [
-      { id:`item-${3001 + index}a`, item_id:service_id, name:service_name, type:"service", quantity:1, cost_price:primaryCost, unit_price:primaryPrice, gross_margin:primaryPrice-primaryCost },
-      ...(extra > 0 ? [{ id:`item-${3001 + index}b`, item_id:"ps-12", name:"Premium Aftercare Package", type:"service" as const, quantity:1, cost_price:extraCost, unit_price:extra, gross_margin:extra-extraCost }] : [])
-    ]
+    `tx-${3001 + index}`,
+    `INV/2026/${String(200 - index).padStart(3, "0")}`,
+    customer_id,
+    customer_name,
+    customer_phone,
+    index % 2 === 0 ? "user-cashier-1" : "user-cashier-2",
+    index % 2 === 0 ? "Siti Kasir" : "Agus Kasir",
+    days,
+    "paid",
+    demoWorkStatuses[index % demoWorkStatuses.length],
+    subtotal,
+    discount_amount,
+    total_amount,
+    paid_amount,
+    demoPaymentMethods[index % demoPaymentMethods.length],
+    "full",
+    items
   );
 });
-
+ 
 export const initialExpenses: OperationalExpense[] = [
   { id:"exp-1", tenant_id:"tenant-001", title:"Sewa outlet & area kerja", amount:11250000, category:"fixed", expense_date:dateAgo(3), notes:"Sewa outlet utama dan area produksi" },
   { id:"exp-2", tenant_id:"tenant-001", title:"Gaji & insentif 14 staf operasional", amount:42650000, category:"fixed", expense_date:dateAgo(2), notes:"Tim produksi, kasir/CS, admin, supervisor dan insentif" },
