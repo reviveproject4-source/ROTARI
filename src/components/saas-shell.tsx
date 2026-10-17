@@ -319,14 +319,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                     </Link>
                   );
                 })}
-
-                <Link
-                  href="/pos"
-                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 ml-1.5 transition"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5" />
-                  <span>Kasir POS</span>
-                </Link>
               </nav>
             )}
           </div>

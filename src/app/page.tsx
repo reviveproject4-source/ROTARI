@@ -145,16 +145,6 @@ export default function OwnerDashboard() {
             Ringkasan omset berbasis nota kasir harian, penerimaan uang masuk, dan perputaran stok promo.
           </p>
         </div>
-
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/pos"
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
-          >
-            <Receipt className="w-4 h-4" />
-            <span>Buka Kasir POS</span>
-          </Link>
-        </div>
       </div>
 
       {/* 2. NOTIFIKASI STOK MENDEKATI BATAS (Mendekati Batas Kritis <= 5 Pcs) */}
