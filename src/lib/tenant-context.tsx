@@ -83,9 +83,16 @@ interface TenantContextType {
   totalRevenue: number;
   totalHPP: number;
   totalOperationalExpenses: number;
+  totalCashExpenses: number;
+  totalTransferExpenses: number;
   netProfit: number;
   totalCashReceived: number;
   totalTransferReceived: number;
+  netCash: number;
+  netTransfer: number;
+  totalDiscounts: number;
+  cashTransactionsCount: number;
+  transferTransactionsCount: number;
   
   // CRM Metrics
   totalWaSent: number;
@@ -438,15 +445,30 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     );
 
   const totalOperationalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const totalCashExpenses = expenses
+    .filter((e) => (e.payment_method || "cash") === "cash")
+    .reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const totalTransferExpenses = expenses
+    .filter((e) => e.payment_method === "transfer")
+    .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
   const netProfit = totalRevenue - totalHPP - totalOperationalExpenses;
 
-  const totalCashReceived = transactions
-    .filter((tx) => tx.status !== "cancelled" && tx.payment_method === "cash")
-    .reduce((sum, tx) => sum + tx.paid_amount, 0);
+  const validTransactions = transactions.filter((tx) => tx.status !== "cancelled");
+  const cashTransactions = validTransactions.filter((tx) => tx.payment_method === "cash");
+  const transferTransactions = validTransactions.filter(
+    (tx) => tx.payment_method === "transfer" || tx.payment_method === "qris"
+  );
 
-  const totalTransferReceived = transactions
-    .filter((tx) => tx.status !== "cancelled" && (tx.payment_method === "transfer" || tx.payment_method === "qris"))
-    .reduce((sum, tx) => sum + tx.paid_amount, 0);
+  const totalCashReceived = cashTransactions.reduce((sum, tx) => sum + tx.paid_amount, 0);
+  const totalTransferReceived = transferTransactions.reduce((sum, tx) => sum + tx.paid_amount, 0);
+
+  const netCash = totalCashReceived - totalCashExpenses;
+  const netTransfer = totalTransferReceived - totalTransferExpenses;
+
+  const totalDiscounts = validTransactions.reduce((sum, tx) => sum + (tx.discount_amount || 0), 0);
+  const cashTransactionsCount = cashTransactions.length;
+  const transferTransactionsCount = transferTransactions.length;
 
   // CRM Analytics
   const totalWaSent = crmLogs.length;
@@ -712,6 +734,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       ...expense,
       id: `exp-${Date.now()}`,
       tenant_id: activeTenant.id,
+      payment_method: expense.payment_method || "transfer",
     };
     setAllExpenses((prev) => [newExpense, ...prev]);
     persistExpenseToSupabase(newExpense);
@@ -889,9 +912,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         totalRevenue,
         totalHPP,
         totalOperationalExpenses,
+        totalCashExpenses,
+        totalTransferExpenses,
         netProfit,
         totalCashReceived,
         totalTransferReceived,
+        netCash,
+        netTransfer,
+        totalDiscounts,
+        cashTransactionsCount,
+        transferTransactionsCount,
         totalWaSent,
         crmConvertedCount,
         crmConvertedAmount,

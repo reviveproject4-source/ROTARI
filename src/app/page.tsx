@@ -16,19 +16,38 @@ import {
   ArrowRight,
   BadgePercent,
   CheckCircle2,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Percent,
+  Bell,
+  Eye,
+  X,
+  Phone,
+  ArrowDownRight,
+  Check
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function OwnerDashboard() {
   const { 
     tenant, 
     totalRevenue, 
     totalHPP, 
+    totalOperationalExpenses,
+    totalCashExpenses,
+    totalTransferExpenses,
     totalCashReceived,
     totalTransferReceived,
+    netCash,
+    netTransfer,
+    totalDiscounts,
+    cashTransactionsCount,
+    transferTransactionsCount,
     transactions,
+    customers,
+    expenses,
     productsServices,
     promoInstructions,
     totalWaSent,
@@ -39,6 +58,16 @@ export default function OwnerDashboard() {
   // Mode Tampilan Tren Omset: HARI (7 Hari Terakhir) vs BULAN (7 Bulan Terakhir)
   const [trendViewMode, setTrendViewMode] = useState<'days7' | 'months7'>('days7');
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
+
+  // Filter Notifikasi Pelanggan Belum Kembali (>30, >45, >60, >90, atau semua)
+  const [dormantFilter, setDormantFilter] = useState<'all' | '30' | '45' | '60' | '90'>('45');
+  const [showDormantList, setShowDormantList] = useState<boolean>(false);
+
+  // Dropdown Nominal Diskon
+  const [showDiscountDropdown, setShowDiscountDropdown] = useState<boolean>(false);
+
+  // Modal Daftar Nota Terbayarkan (Cash vs Transfer)
+  const [invoiceModalType, setInvoiceModalType] = useState<'cash' | 'transfer' | null>(null);
 
   // 1. Perhitungan Berbasis Nota
   const validTransactions = transactions.filter((tx) => tx.status !== "cancelled");
@@ -71,7 +100,37 @@ export default function OwnerDashboard() {
     (ps) => ps.type === "product" && ps.stock <= lowStockThreshold
   );
 
-  // 3. Olah Data Tren Omset Berbasis Nota
+  // 3. Filter Pelanggan Belum Kembali untuk Notif Owner (>30, >45, >60, >90 hari)
+  const dormantCustomersFiltered = useMemo(() => {
+    return customers.filter((c) => {
+      const diffDays = Math.floor((Date.now() - new Date(c.last_order_at).getTime()) / 86400000);
+      if (dormantFilter === '30') return diffDays >= 30;
+      if (dormantFilter === '45') return diffDays >= 45;
+      if (dormantFilter === '60') return diffDays >= 60;
+      if (dormantFilter === '90') return diffDays >= 90;
+      return diffDays >= 30; // 'all' (semua yang belum kembali >=30 hari)
+    });
+  }, [customers, dormantFilter]);
+
+  const totalDormantValue = useMemo(() => {
+    return dormantCustomersFiltered.reduce((sum, c) => sum + (c.total_spent || 0), 0);
+  }, [dormantCustomersFiltered]);
+
+  // Transaksi yang memiliki diskon
+  const discountedTransactions = useMemo(() => {
+    return validTransactions.filter((tx) => (tx.discount_amount || 0) > 0);
+  }, [validTransactions]);
+
+  // Transaksi Cash vs Transfer
+  const cashTransactions = useMemo(() => {
+    return validTransactions.filter((tx) => tx.payment_method === 'cash');
+  }, [validTransactions]);
+
+  const transferTransactions = useMemo(() => {
+    return validTransactions.filter((tx) => tx.payment_method === 'transfer' || tx.payment_method === 'qris');
+  }, [validTransactions]);
+
+  // 4. Olah Data Tren Omset Berbasis Nota
   const now = new Date();
   const dailyDataMap: { [label: string]: number } = {};
 
@@ -142,12 +201,155 @@ export default function OwnerDashboard() {
             Dashboard Utama Owner
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Ringkasan omset berbasis nota kasir harian, penerimaan uang masuk, dan perputaran stok promo.
+            Ringkasan omset berbasis nota kasir harian, penerimaan vs pengeluaran cash/transfer, dan monitoring retensi pelanggan.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/crm"
+            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Buka Laporan &amp; Ekspor</span>
+          </Link>
         </div>
       </div>
 
-      {/* 2. NOTIFIKASI STOK MENDEKATI BATAS (Mendekati Batas Kritis <= 5 Pcs) */}
+      {/* ======================================================== */}
+      {/* NOTIFIKASI OWNER: KONSUMEN BELUM KEMBALI (>30, >45, >60, >90, SEMUA) */}
+      {/* ======================================================== */}
+      <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-white dark:from-amber-950/30 dark:via-orange-950/20 dark:to-slate-900 rounded-3xl p-5 border-2 border-amber-300/80 dark:border-amber-800 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start space-x-3.5">
+            <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-md flex-shrink-0 mt-0.5">
+              <Bell className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                  ⚠️ Peringatan Retensi Pelanggan
+                </span>
+                <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                  Potensi Kehilangan Pelanggan Setia
+                </span>
+              </div>
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mt-1">
+                Terdapat <span className="text-amber-600 dark:text-amber-400 underline decoration-amber-400">{dormantCustomersFiltered.length} Konsumen</span> Belum Kembali Berkunjung {dormantFilter === 'all' ? '(≥30 Hari)' : `(>${dormantFilter} Hari)`}!
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Total histori nilai transaksi mereka bernilai <strong className="text-slate-900 dark:text-slate-100 font-bold">Rp {totalDormantValue.toLocaleString("id-ID")}</strong>. Segera arahkan tim kasir untuk follow-up WA reminder!
+              </p>
+            </div>
+          </div>
+
+          {/* Filter Pills: Pilih Semua / >30 / >45 / >60 / >90 Hari */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-start md:self-auto">
+            <div className="flex items-center p-1 bg-white dark:bg-slate-800 rounded-2xl border border-amber-200 dark:border-amber-900 shadow-sm text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setDormantFilter('all')}
+                className={`px-2.5 py-1 rounded-xl transition ${
+                  dormantFilter === 'all'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-300'
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => setDormantFilter('30')}
+                className={`px-2.5 py-1 rounded-xl transition ${
+                  dormantFilter === '30'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-300'
+                }`}
+              >
+                &gt;30 Hari
+              </button>
+              <button
+                type="button"
+                onClick={() => setDormantFilter('45')}
+                className={`px-2.5 py-1 rounded-xl transition ${
+                  dormantFilter === '45'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-300'
+                }`}
+              >
+                &gt;45 Hari ⭐
+              </button>
+              <button
+                type="button"
+                onClick={() => setDormantFilter('60')}
+                className={`px-2.5 py-1 rounded-xl transition ${
+                  dormantFilter === '60'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-300'
+                }`}
+              >
+                &gt;60 Hari
+              </button>
+              <button
+                type="button"
+                onClick={() => setDormantFilter('90')}
+                className={`px-2.5 py-1 rounded-xl transition ${
+                  dormantFilter === '90'
+                    ? 'bg-amber-500 text-white shadow-sm font-black'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-300'
+                }`}
+              >
+                &gt;90 Hari
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowDormantList(!showDormantList)}
+              className="px-3.5 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-100/60 dark:bg-amber-950/50 hover:bg-amber-200/60 text-amber-900 dark:text-amber-200 text-xs font-black transition flex items-center gap-1"
+            >
+              <span>{showDormantList ? "Tutup Daftar" : "Lihat Nama"}</span>
+              {showDormantList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsible Customer Names Preview */}
+        {showDormantList && (
+          <div className="pt-3 border-t border-amber-200/60 dark:border-amber-900/40 space-y-3 animate-in fade-in">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span className="font-bold">Daftar Konsumen Belum Kembali {dormantFilter === 'all' ? '(Semua)' : `(>${dormantFilter} Hari)`}:</span>
+              <Link href="/crm" className="text-purple-600 hover:underline font-bold flex items-center gap-1">
+                <span>Kirim Instruksi Promo ke Kasir</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+              {dormantCustomersFiltered.map((c) => {
+                const diffDays = Math.floor((Date.now() - new Date(c.last_order_at).getTime()) / 86400000);
+                return (
+                  <div key={c.id} className="p-3 bg-white/90 dark:bg-slate-800/90 rounded-2xl border border-amber-200/80 dark:border-amber-900/60 flex items-center justify-between text-xs">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-slate-100">{c.name}</h4>
+                      <p className="text-[10px] text-slate-500 font-mono">{c.phone}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 block">
+                        {diffDays} Hari Lalu
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {c.total_orders || 1}x Order
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* NOTIFIKASI STOK MENDEKATI BATAS (<= 5 Unit) */}
       {lowStockProducts.length > 0 && (
         <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-900/80 rounded-3xl p-5 shadow-sm space-y-3 animate-in fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -198,11 +400,13 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* 1 & 4. RINGKASAN FINANSIAL BERBASIS NOTA & KEUNTUNGAN KOTOR */}
+      {/* ======================================================== */}
+      {/* 4 KARTU METRIK EKSEKUTIF UTAMA (DENGAN DROPDOWN DISKON & NOTA) */}
+      {/* ======================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
-        {/* Card 1: Total Omset Berbasis Nota */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
+        {/* Card 1: Total Omset Berbasis Nota + Dropdown Diskon */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2 relative">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
               <Receipt className="w-4 h-4 text-sky-600" /> Total Omset Nota
@@ -211,16 +415,57 @@ export default function OwnerDashboard() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
+
+          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Rp {totalRevenue.toLocaleString("id-ID")}
           </p>
-          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Hari ini: Rp {todayRevenue.toLocaleString("id-ID")}</span>
-            <span className="font-bold text-sky-600">{todayInvoicesCount} Nota</span>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Hari ini: <strong>Rp {todayRevenue.toLocaleString("id-ID")}</strong></span>
+            <span className="font-black text-sky-600 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-full">
+              {todayInvoicesCount} Nota Hari Ini
+            </span>
+          </div>
+
+          {/* Dropdown / Collapsible Nominal Diskon */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setShowDiscountDropdown(!showDiscountDropdown)}
+              className="w-full flex items-center justify-between text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 bg-amber-50/60 dark:bg-amber-950/40 p-2 rounded-xl transition"
+            >
+              <span className="flex items-center gap-1">
+                <Percent className="w-3.5 h-3.5" />
+                <span>Total Diskon: Rp {totalDiscounts.toLocaleString("id-ID")}</span>
+              </span>
+              {showDiscountDropdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showDiscountDropdown && (
+              <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs animate-in fade-in">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-500">Omset Kotor (Sebelum Diskon):</span>
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    Rp {(totalRevenue + totalDiscounts).toLocaleString("id-ID")}
+                  </strong>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-rose-600">
+                  <span>Total Potongan Diskon:</span>
+                  <strong>- Rp {totalDiscounts.toLocaleString("id-ID")}</strong>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-emerald-600 font-bold border-t border-slate-200 dark:border-slate-700 pt-1">
+                  <span>Omset Bersih Diterima:</span>
+                  <span>Rp {totalRevenue.toLocaleString("id-ID")}</span>
+                </div>
+                <p className="text-[10px] text-slate-400 italic">
+                  Terdapat {discountedTransactions.length} nota yang diberikan potongan harga promo kasir.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Card 2: Total Uang Masuk Cash (Tunai Fisik di Laci) */}
+        {/* Card 2: Total Uang Masuk Cash (Terlihat Nota Terbayarkan) */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
@@ -230,16 +475,28 @@ export default function OwnerDashboard() {
               <Wallet className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+
+          <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
             Rp {totalCashReceived.toLocaleString("id-ID")}
           </p>
-          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Uang Tunai Fisik Kasir</span>
-            <span className="font-bold text-emerald-600">{cashPercent}% Porsi</span>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <button
+              onClick={() => setInvoiceModalType('cash')}
+              className="font-black text-emerald-600 hover:underline flex items-center gap-1"
+            >
+              <span>{cashTransactionsCount} Nota Terbayar Cash</span>
+              <Eye className="w-3 h-3" />
+            </button>
+            <span className="font-bold text-slate-400">{cashPercent}% Porsi</span>
+          </div>
+
+          <div className="text-[10px] text-slate-400 bg-emerald-50/50 dark:bg-emerald-950/20 p-1.5 rounded-lg">
+            Uang fisik tunai kasir siap setor/laci
           </div>
         </div>
 
-        {/* Card 3: Total Uang Masuk Transfer & QRIS */}
+        {/* Card 3: Total Uang Masuk Transfer & QRIS (Terlihat Nota Terbayarkan) */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
@@ -249,12 +506,24 @@ export default function OwnerDashboard() {
               <CreditCard className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">
+
+          <p className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight">
             Rp {totalTransferReceived.toLocaleString("id-ID")}
           </p>
-          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Rekening Bank &amp; QRIS</span>
-            <span className="font-bold text-indigo-600">{transferPercent}% Porsi</span>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <button
+              onClick={() => setInvoiceModalType('transfer')}
+              className="font-black text-indigo-600 hover:underline flex items-center gap-1"
+            >
+              <span>{transferTransactionsCount} Nota Terbayar Transfer</span>
+              <Eye className="w-3 h-3" />
+            </button>
+            <span className="font-bold text-slate-400">{transferPercent}% Porsi</span>
+          </div>
+
+          <div className="text-[10px] text-slate-400 bg-indigo-50/50 dark:bg-indigo-950/20 p-1.5 rounded-lg">
+            Masuk rekening bank &amp; QRIS outlet
           </div>
         </div>
 
@@ -271,12 +540,165 @@ export default function OwnerDashboard() {
           <p className="text-2xl sm:text-3xl font-black tracking-tight">
             Rp {grossProfit.toLocaleString("id-ID")}
           </p>
-          <p className="text-[11px] opacity-85 font-medium pt-1 border-t border-white/20">
-            Omset Nota - Total HPP (Harga Beli)
+          <p className="text-[11px] opacity-85 font-medium pt-2 border-t border-white/20">
+            Omset Nota dikurangi Total HPP Bahan (Harga Beli)
           </p>
         </div>
 
       </div>
+
+      {/* ======================================================== */}
+      {/* 5. LAPORAN PEMISAHAN KEUANGAN: CASH VS TRANSFER */}
+      {/* ======================================================== */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-emerald-600" />
+              Laporan Keuangan Kas: Penerimaan vs Pengeluaran (Cash &amp; Transfer)
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Pemisahan tegas arus kas tunai fisik laci dengan mutasi rekening bank transfer agar pembukuan tidak tercampur.
+            </p>
+          </div>
+
+          <Link
+            href="/expenses"
+            className="text-xs font-bold text-purple-600 hover:underline flex items-center gap-1"
+          >
+            <span>+ Catat Biaya Operasional (Pilih Cash / Transfer)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Box 1: Pembukuan Kas Tunai (Cash) */}
+          <div className="p-5 rounded-2xl border-2 border-emerald-300 dark:border-emerald-900 bg-emerald-50/30 dark:bg-emerald-950/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                💵 Kas Tunai (Laci Outlet)
+              </span>
+              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                Fisik Kasir
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span>Penerimaan Cash ({cashTransactionsCount} Nota):</span>
+                <strong className="text-emerald-600 dark:text-emerald-400 font-black">
+                  + Rp {totalCashReceived.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span>Pengeluaran Biaya Cash ({expenses.filter(e => (e.payment_method || 'cash') === 'cash').length} Item):</span>
+                <strong className="text-rose-600 dark:text-rose-400 font-black">
+                  - Rp {totalCashExpenses.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 flex justify-between items-center text-sm">
+                <span className="font-extrabold text-slate-900 dark:text-slate-100">Sisa Kas Tunai Bersih:</span>
+                <span className={`font-black ${netCash >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                  Rp {netCash.toLocaleString("id-ID")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Box 2: Pembukuan Rekening Bank (Transfer & QRIS) */}
+          <div className="p-5 rounded-2xl border-2 border-indigo-300 dark:border-indigo-900 bg-indigo-50/30 dark:bg-indigo-950/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                💳 Rekening Bank / QRIS (Non-Tunai)
+              </span>
+              <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-full font-bold">
+                Rekening Toko
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span>Penerimaan Transfer ({transferTransactionsCount} Nota):</span>
+                <strong className="text-indigo-600 dark:text-indigo-400 font-black">
+                  + Rp {totalTransferReceived.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                <span>Pengeluaran Biaya Transfer ({expenses.filter(e => e.payment_method === 'transfer').length} Item):</span>
+                <strong className="text-rose-600 dark:text-rose-400 font-black">
+                  - Rp {totalTransferExpenses.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div className="pt-2 border-t border-indigo-200 dark:border-indigo-800 flex justify-between items-center text-sm">
+                <span className="font-extrabold text-slate-900 dark:text-slate-100">Sisa Kas Rekening Bersih:</span>
+                <span className={`font-black ${netTransfer >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600'}`}>
+                  Rp {netTransfer.toLocaleString("id-ID")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Modal Rincian Nota Terbayarkan (Cash / Transfer) */}
+      {invoiceModalType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 relative">
+            <button
+              onClick={() => setInvoiceModalType(null)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-black text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
+                {invoiceModalType === 'cash' ? <Wallet className="w-5 h-5 text-emerald-600" /> : <CreditCard className="w-5 h-5 text-indigo-600" />}
+                Daftar Nota Terbayarkan: {invoiceModalType === 'cash' ? 'Pembayaran Cash' : 'Pembayaran Transfer & QRIS'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                Total {invoiceModalType === 'cash' ? cashTransactions.length : transferTransactions.length} nota terbayarkan masuk ke kas ini.
+              </p>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              {(invoiceModalType === 'cash' ? cashTransactions : transferTransactions).map((tx) => (
+                <div key={tx.id} className="py-2.5 flex items-center justify-between">
+                  <div>
+                    <div className="font-mono font-bold text-slate-900 dark:text-slate-100">{tx.invoice_number}</div>
+                    <div className="text-[11px] text-slate-400">
+                      {tx.customer_name || "Pelanggan Umum"} • Kasir: {tx.cashier_name}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-slate-900 dark:text-slate-100">
+                      Rp {tx.paid_amount.toLocaleString("id-ID")}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {new Date(tx.created_at).toLocaleDateString("id-ID")}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={() => setInvoiceModalType(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Line Chart: Tren Omzet Berbasis Nota Kasir */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">

@@ -77,6 +77,7 @@ export interface OperationalExpense {
   title: string;
   category: 'fixed' | 'variable';
   amount: number;
+  payment_method: 'cash' | 'transfer';
   expense_date: string;
   notes?: string;
 }

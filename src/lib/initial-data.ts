@@ -259,13 +259,13 @@ export const initialTransactions: Transaction[] = Array.from({ length: 60 }, (_,
 });
  
 export const initialExpenses: OperationalExpense[] = [
-  { id:"exp-1", tenant_id:"tenant-001", title:"Sewa outlet & area kerja", amount:11250000, category:"fixed", expense_date:dateAgo(3), notes:"Sewa outlet utama dan area produksi" },
-  { id:"exp-2", tenant_id:"tenant-001", title:"Gaji & insentif 14 staf operasional", amount:42650000, category:"fixed", expense_date:dateAgo(2), notes:"Tim produksi, kasir/CS, admin, supervisor dan insentif" },
-  { id:"exp-3", tenant_id:"tenant-001", title:"Listrik, air & internet", amount:4625000, category:"fixed", expense_date:dateAgo(7), notes:"Utilitas operasional bulan berjalan" },
-  { id:"exp-4", tenant_id:"tenant-001", title:"Marketing & customer retention", amount:3850000, category:"variable", expense_date:dateAgo(10), notes:"Campaign, CRM dan materi promosi" },
-  { id:"exp-5", tenant_id:"tenant-001", title:"Packaging & pickup support", amount:2675000, category:"variable", expense_date:dateAgo(12), notes:"Packaging premium, label dan kebutuhan pickup" },
-  { id:"exp-6", tenant_id:"tenant-001", title:"Maintenance alat & area produksi", amount:3150000, category:"variable", expense_date:dateAgo(18), notes:"Perawatan mesin, tools dan area produksi" },
-  { id:"exp-7", tenant_id:"tenant-001", title:"Administrasi & kebutuhan outlet", amount:1950000, category:"variable", expense_date:dateAgo(21), notes:"ATK, software dan kebutuhan operasional kecil" },
+  { id:"exp-1", tenant_id:"tenant-001", title:"Sewa outlet & area kerja", amount:11250000, category:"fixed", payment_method:"transfer", expense_date:dateAgo(3), notes:"Sewa outlet utama dan area produksi" },
+  { id:"exp-2", tenant_id:"tenant-001", title:"Gaji & insentif 14 staf operasional", amount:42650000, category:"fixed", payment_method:"transfer", expense_date:dateAgo(2), notes:"Tim produksi, kasir/CS, admin, supervisor dan insentif" },
+  { id:"exp-3", tenant_id:"tenant-001", title:"Listrik, air & internet", amount:4625000, category:"fixed", payment_method:"transfer", expense_date:dateAgo(7), notes:"Utilitas operasional bulan berjalan" },
+  { id:"exp-4", tenant_id:"tenant-001", title:"Marketing & customer retention", amount:3850000, category:"variable", payment_method:"transfer", expense_date:dateAgo(10), notes:"Campaign, CRM dan materi promosi" },
+  { id:"exp-5", tenant_id:"tenant-001", title:"Packaging & pickup support", amount:2675000, category:"variable", payment_method:"cash", expense_date:dateAgo(12), notes:"Packaging premium, label dan kebutuhan pickup" },
+  { id:"exp-6", tenant_id:"tenant-001", title:"Maintenance alat & area produksi", amount:3150000, category:"variable", payment_method:"cash", expense_date:dateAgo(18), notes:"Perawatan mesin, tools dan area produksi" },
+  { id:"exp-7", tenant_id:"tenant-001", title:"Administrasi & kebutuhan outlet", amount:1950000, category:"variable", payment_method:"cash", expense_date:dateAgo(21), notes:"ATK, software dan kebutuhan operasional kecil" },
 ];
 
 const crmCustomerPool = [

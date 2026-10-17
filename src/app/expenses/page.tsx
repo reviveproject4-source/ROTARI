@@ -14,10 +14,11 @@ import {
 } from "lucide-react";
 
 export default function ExpensesPage() {
-  const { expenses, addExpense, deleteExpense, totalOperationalExpenses } = useTenant();
+  const { expenses, addExpense, deleteExpense, totalOperationalExpenses, totalCashExpenses, totalTransferExpenses } = useTenant();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<'fixed' | 'variable'>('fixed');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('transfer');
   const [amount, setAmount] = useState<number | "">("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
@@ -29,6 +30,7 @@ export default function ExpensesPage() {
     addExpense({
       title,
       category,
+      payment_method: paymentMethod,
       amount: Number(amount),
       expense_date: expenseDate,
       notes,
@@ -80,28 +82,37 @@ export default function ExpensesPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Biaya Operasional</span>
           <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">
             Rp {totalOperationalExpenses.toLocaleString("id-ID")}
           </p>
+          <span className="text-[11px] text-slate-400">Total seluruh beban pengeluaran</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider">Biaya Tetap (Fixed Costs)</span>
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Pengeluaran Cash</span>
+          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
+            Rp {totalCashExpenses.toLocaleString("id-ID")}
+          </p>
+          <span className="text-[11px] text-slate-400">Dibayar tunai dari laci kas</span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider">Pengeluaran Transfer</span>
           <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">
-            Rp {fixedTotal.toLocaleString("id-ID")}
+            Rp {totalTransferExpenses.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400">Gaji, Sewa Ruko, Lisensi</span>
+          <span className="text-[11px] text-slate-400">Dibayar dari rekening bank</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Biaya Variabel (Variable Costs)</span>
-          <p className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-2">
-            Rp {variableTotal.toLocaleString("id-ID")}
+          <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Tetap vs Variabel</span>
+          <p className="text-base font-bold text-slate-800 dark:text-slate-200 mt-2">
+            Tetap: Rp {fixedTotal.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400">Listrik, Air, Bahan Operasional</span>
+          <span className="text-[11px] text-slate-400">Variabel: Rp {variableTotal.toLocaleString("id-ID")}</span>
         </div>
       </div>
 
@@ -141,6 +152,36 @@ export default function ExpensesPage() {
                   }`}
                 >
                   Biaya Variabel
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                Metode Pembayaran Biaya *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition ${
+                    paymentMethod === 'cash'
+                      ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  💵 Cash (Tunai Laci)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('transfer')}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition ${
+                    paymentMethod === 'transfer'
+                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-extrabold'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  💳 Transfer / Bank
                 </button>
               </div>
             </div>
@@ -229,6 +270,13 @@ export default function ExpensesPage() {
                           : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
                       }`}>
                         {exp.category === 'fixed' ? 'Biaya Tetap' : 'Biaya Variabel'}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        (exp.payment_method || 'cash') === 'cash'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+                      }`}>
+                        {(exp.payment_method || 'cash') === 'cash' ? '💵 Cash' : '💳 Transfer'}
                       </span>
                       <span className="text-xs text-slate-400">{exp.expense_date}</span>
                     </div>
