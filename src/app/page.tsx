@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import { PosInvoiceSection } from "@/components/pos-invoice-section";
 
 export default function OwnerDashboard() {
   const { 
@@ -423,6 +424,14 @@ export default function OwnerDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="#pos-invoice-section"
+            className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black shadow-md shadow-sky-600/20 transition flex items-center gap-1.5"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>+ Buat Nota Sekarang</span>
+          </a>
+
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -716,6 +725,13 @@ export default function OwnerDashboard() {
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* SECTION KASIR POS: PILIH PRODUK RITEL & LAYANAN JASA + FORM BUAT NOTA */}
+      {/* ======================================================== */}
+      <div id="pos-invoice-section" className="bg-gradient-to-br from-white via-slate-50 to-sky-50/20 dark:from-slate-900 dark:via-slate-900/90 dark:to-sky-950/20 rounded-3xl p-6 border-2 border-sky-300 dark:border-sky-800 shadow-lg space-y-4">
+        <PosInvoiceSection showTitle={true} />
+      </div>
 
       {/* ======================================================== */}
       {/* 4 KARTU METRIK EKSEKUTIF UTAMA (DENGAN DROPDOWN DISKON & NOTA) */}
