@@ -97,12 +97,15 @@ const tx = (
   paid_amount: number,
   payment_method: Transaction["payment_method"],
   payment_stage: Transaction["payment_stage"],
-  items: Transaction["items"]
+  items: Transaction["items"],
+  branch_name: string = "Outlet Utama",
+  crm_attributed_log_id?: string
 ): Transaction => ({
-  id, tenant_id: "tenant-001", invoice_number: invoice, customer_id, customer_name, customer_phone,
+  id, tenant_id: "tenant-001", invoice_number: invoice, branch_name, customer_id, customer_name, customer_phone,
   cashier_id, cashier_name, created_at: daysAgo(days), status, work_status, subtotal,
   discount_type: discount_amount > 0 ? "amount" : "amount", discount_value: discount_amount,
   discount_amount, total_amount, paid_amount, payment_method, payment_stage, items,
+  crm_attributed_log_id,
 });
 
 type DemoItemSpec = {
@@ -188,20 +191,39 @@ const demoCustomers = [
   ["cust-8","Salsa Amelia","082233445566"],
 ] as const;
 
+export const crmConversions = [0, 1, 3, 5, 7, 12, 18, 24];
+
 /*
- * 60 transactions / 30 days / 2 transactions per day.
- * The monthly turnover is the natural sum of these service + product bundles:
- * approximately Rp125.8M, not an arbitrary Rp200M target.
+ * 60 transactions / 30-70 days.
+ * Real catalog prices, multi-branch, multi-cashier, and realistic payment statuses (Lunas, DP, Belum Lunas).
  */
 export const initialTransactions: Transaction[] = Array.from({ length: 60 }, (_, index) => {
-  const days = Math.floor(index / 2);
+  const days = Math.floor(index * 1.15);
   const bundle = demoBundles[index % demoBundles.length];
   const customer = demoCustomers[index % demoCustomers.length];
   const [customer_id, customer_name, customer_phone] = customer;
   const subtotal = bundle.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-  const discount_amount = 0;
+  const discount_amount = index % 8 === 0 ? 50000 : 0;
   const total_amount = subtotal - discount_amount;
-  const paid_amount = total_amount;
+
+  // Realistic status bayar: Lunas (paid), DP (partially_paid), Belum Lunas (unpaid)
+  const isDp = index % 7 === 0;
+  const isUnpaid = !isDp && index % 11 === 0;
+  const status: Transaction["status"] = isUnpaid ? "unpaid" : isDp ? "partially_paid" : "paid";
+  const payment_stage: Transaction["payment_stage"] = isDp ? "dp" : "full";
+  const paid_amount = isUnpaid ? 0 : isDp ? Math.round(total_amount * 0.4) : total_amount;
+
+  // Cabang multi-outlet
+  const branch_name = index % 3 === 0 ? "Cabang BSD" : index % 5 === 0 ? "Cabang Gading Serpong" : "Outlet Utama";
+
+  // Nama kasir / pegawai
+  const cashier_name = index % 7 === 0 ? "Budi Owner" : index % 2 === 0 ? "Siti Kasir" : "Agus Kasir";
+  const cashier_id = index % 7 === 0 ? "user-owner" : index % 2 === 0 ? "user-cashier-1" : "user-cashier-2";
+
+  // Atribusi CRM jika ada di daftar konversi
+  const isCrmAttributed = crmConversions.includes(index);
+  const crm_attributed_log_id = isCrmAttributed ? `crm-${crmConversions.indexOf(index) + 1}` : undefined;
+
   const items = bundle.map((item, itemIndex) => ({
     id: `item-${3001 + index}-${itemIndex + 1}`,
     item_id: item.item_id,
@@ -219,18 +241,20 @@ export const initialTransactions: Transaction[] = Array.from({ length: 60 }, (_,
     customer_id,
     customer_name,
     customer_phone,
-    index % 2 === 0 ? "user-cashier-1" : "user-cashier-2",
-    index % 2 === 0 ? "Siti Kasir" : "Agus Kasir",
+    cashier_id,
+    cashier_name,
     days,
-    "paid",
+    status,
     demoWorkStatuses[index % demoWorkStatuses.length],
     subtotal,
     discount_amount,
     total_amount,
     paid_amount,
     demoPaymentMethods[index % demoPaymentMethods.length],
-    "full",
-    items
+    payment_stage,
+    items,
+    branch_name,
+    crm_attributed_log_id
   );
 });
  
@@ -250,7 +274,6 @@ const crmCustomerPool = [
   ["cust-7","Kevin Wijaya","081188776655"],["cust-8","Salsa Amelia","082233445566"],["cust-9","Yoga Kurniawan","081355667788"],["cust-10","Maya Lestari","089612345678"]
 ] as const;
 
-const crmConversions = [0, 1, 3, 5, 7, 12, 18, 24];
 export const initialCrmLogs: CrmLog[] = Array.from({ length: 60 }, (_, index) => {
   const [customer_id, customer_name, customer_phone] = crmCustomerPool[index % crmCustomerPool.length];
   const convertedIndex = crmConversions[index % crmConversions.length];

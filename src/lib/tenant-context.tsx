@@ -51,7 +51,7 @@ interface TenantContextType {
   
   // Bulk import for Owner
   importProductsServices: (items: Array<Omit<ProductService, "id" | "tenant_id" | "is_dead_stock">>) => number;
-  importCustomers: (custs: Array<Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status">>) => number;
+  importCustomers: (custs: Array<Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status"> & { last_order_at?: string; churn_status?: 'active' | 'at_risk_45' | 'lost_90' }>) => number;
   
   // Prospect Lead Methods
   addProspectLead: (lead: Omit<ProspectLead, "id" | "created_at" | "status">) => void;
@@ -325,17 +325,48 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const importCustomers = (
-    custs: Array<Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status">>
+    custs: Array<Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status"> & { last_order_at?: string; churn_status?: 'active' | 'at_risk_45' | 'lost_90' }>
   ): number => {
-    const newCusts: Customer[] = custs.map((c, idx) => ({
-      ...c,
-      id: `cust-imp-${Date.now()}-${idx}`,
-      tenant_id: activeTenant.id,
-      last_order_at: new Date().toISOString(),
-      churn_status: "active",
-    }));
-    setAllCustomers((prev) => [...newCusts, ...prev]);
-    return newCusts.length;
+    setAllCustomers((prev) => {
+      const updatedList = [...prev];
+      custs.forEach((c, idx) => {
+        const cleanPhone = c.phone.trim().replace(/[^0-9]/g, "");
+        const existingIdx = updatedList.findIndex(
+          (existing) => existing.tenant_id === activeTenant.id && (
+            existing.phone.replace(/[^0-9]/g, "") === cleanPhone
+          )
+        );
+
+        if (existingIdx >= 0) {
+          const existing = updatedList[existingIdx];
+          const updated: Customer = {
+            ...existing,
+            name: c.name || existing.name,
+            email: c.email || existing.email,
+            address: c.address || existing.address,
+            notes: c.notes || existing.notes,
+            total_orders: (existing.total_orders || 0) + (c.total_orders || 0),
+            total_spent: (existing.total_spent || 0) + (c.total_spent || 0),
+            last_order_at: c.last_order_at || existing.last_order_at || new Date().toISOString(),
+            churn_status: c.churn_status || existing.churn_status || "active",
+          };
+          updatedList[existingIdx] = updated;
+          persistCustomerToSupabase(updated);
+        } else {
+          const newCust: Customer = {
+            ...c,
+            id: `cust-imp-${Date.now()}-${idx}`,
+            tenant_id: activeTenant.id,
+            last_order_at: c.last_order_at || new Date().toISOString(),
+            churn_status: c.churn_status || "active",
+          };
+          updatedList.unshift(newCust);
+          persistCustomerToSupabase(newCust);
+        }
+      });
+      return updatedList;
+    });
+    return custs.length;
   };
 
   // Prospect Leads Handler
@@ -714,6 +745,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     ).padStart(3, "0")}`;
 
     const newTx: Transaction = {
+      branch_name: tx.branch_name || activeTenant.address || "Outlet Utama",
       ...tx,
       id: `tx-${Date.now()}`,
       tenant_id: activeTenant.id,

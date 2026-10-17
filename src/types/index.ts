@@ -110,6 +110,7 @@ export interface Transaction {
   id: string;
   tenant_id: string;
   invoice_number: string;
+  branch_name?: string;
   customer_id?: string;
   customer_name?: string;
   customer_phone?: string;

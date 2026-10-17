@@ -63,7 +63,8 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Dashboard Utama", icon: LayoutDashboard, badge: null },
     { href: "/employees", label: "Data Pegawai", icon: Users, badge: null },
     { href: "/inventory", label: "Inventory & Stok", icon: Package, badge: null },
-    { href: "/crm", label: "CRM Laporan", icon: MessageSquareText, badge: "Laporan" },
+    { href: "/cashier/customers", label: "Data Konsumen", icon: Users, badge: "Import" },
+    { href: "/crm", label: "Laporan & CRM", icon: MessageSquareText, badge: "Laporan" },
     { href: "/settings", label: "Pengaturan Outlet", icon: SettingsIcon, badge: null },
   ];
 
