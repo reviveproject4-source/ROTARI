@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "@/lib/tenant-context";
 import { useTheme } from "next-themes";
 import { 
@@ -32,11 +32,13 @@ import { Menu, X as CloseIcon } from "lucide-react";
 
 export function SaasShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { 
     tenant, 
     currentUser, 
     isAuthenticated,
     logout,
+    loginWithCredentials,
     updateTenant, 
     transactions, 
     daysRemainingInTrial, 
@@ -324,14 +326,54 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Ganti User Modal Button */}
+          <div className="flex items-center space-x-1.5 sm:space-x-3">
+            {/* User Profile Badge & Modal Switcher Button (Selalu Terlihat di Mobile & Desktop) */}
             <button
               onClick={() => setIsLoginModalOpen(true)}
-              className="hidden sm:inline-flex items-center text-[11px] font-extrabold text-sky-600 dark:text-sky-400 hover:underline px-1 py-1"
+              title="Klik untuk beralih role (Owner / Kasir)"
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-sm hover:shadow cursor-pointer ${
+                currentUser.role === 'owner'
+                  ? 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-800'
+                  : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+              }`}
             >
-              Ganti User
+              <span className="text-sm">
+                {currentUser.role === 'owner' ? '👑' : currentUser.role === 'cashier' ? '👩' : '🛡️'}
+              </span>
+              <div className="text-left leading-tight hidden xs:block">
+                <span className="block font-black text-[11px] sm:text-xs truncate max-w-[90px] sm:max-w-[120px]">
+                  {currentUser.name}
+                </span>
+                <span className="block text-[9px] font-semibold opacity-80 uppercase text-sky-700 dark:text-sky-300">
+                  {currentUser.role === 'owner' ? 'Owner' : 'Kasir'} • Ganti User
+                </span>
+              </div>
+              <span className="xs:hidden text-[10px] font-black uppercase">
+                {currentUser.role === 'owner' ? 'Owner' : 'Kasir'}
+              </span>
             </button>
+
+            {/* Quick 1-Click Switch Button: Masuk Kasir jika sedang Owner */}
+            {currentUser.role === 'owner' ? (
+              <button
+                onClick={() => {
+                  loginWithCredentials("siti@rotari.id", "1122");
+                  router.push("/pos");
+                }}
+                title="Beralih langsung ke mode Kasir (Siti)"
+                className="hidden md:inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black shadow-sm transition active:scale-95"
+              >
+                <span>Masuk Kasir 👩</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
+                title="Beralih ke mode Owner (perlu PIN 123456)"
+                className="hidden md:inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black shadow-sm transition active:scale-95"
+              >
+                <span>Mode Owner 👑</span>
+              </button>
+            )}
             
             {/* Trial Status Badge */}
             {tenant.subscription_status === 'active' ? (

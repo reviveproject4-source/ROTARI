@@ -508,7 +508,47 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: SUPER_ADMIN_USER };
     }
 
-    // 2. Standard Tenant User Check
+    // 2. Demo Cashier Shortcut / Alias Check
+    if (
+      cleanId === "kasir" || 
+      cleanId === "kasir@rotari.id" || 
+      cleanId === "cashier" ||
+      cleanId === "siti" ||
+      cleanId === "siti@rotari.id"
+    ) {
+      if (cleanPin === "1122" || cleanPin === "123456" || cleanPin === "3344" || !cleanPin) {
+        const cashierUser = users.find((u) => u.role === "cashier") || initialUsers[1];
+        setCurrentUser(cashierUser);
+        setActiveTenantId(cashierUser.tenant_id);
+        setIsAuthenticated(true);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("rotari_auth_user_id", cashierUser.id);
+          sessionStorage.setItem("rotari_active_tenant_id", cashierUser.tenant_id);
+        }
+        return { success: true, user: cashierUser };
+      }
+    }
+
+    // 3. Demo Owner Shortcut / Alias Check
+    if (
+      cleanId === "owner" ||
+      cleanId === "owner@rotari.id" ||
+      cleanId === "budi"
+    ) {
+      if (cleanPin === "123456" || !cleanPin) {
+        const ownerUser = users.find((u) => u.role === "owner") || initialUsers[0];
+        setCurrentUser(ownerUser);
+        setActiveTenantId(ownerUser.tenant_id);
+        setIsAuthenticated(true);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("rotari_auth_user_id", ownerUser.id);
+          sessionStorage.setItem("rotari_active_tenant_id", ownerUser.tenant_id);
+        }
+        return { success: true, user: ownerUser };
+      }
+    }
+
+    // 4. Standard Tenant User Check
     const matchedUser = users.find((u) => {
       const matchesPin = u.pin_code === cleanPin;
       if (!cleanId) return matchesPin;

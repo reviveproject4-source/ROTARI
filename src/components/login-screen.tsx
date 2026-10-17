@@ -42,7 +42,7 @@ export function LoginScreen() {
   };
 
   const handleQuickDemoCashier = () => {
-    const result = loginWithCredentials("kasir@rotari.id", "123456");
+    const result = loginWithCredentials("siti@rotari.id", "1122");
     if (result.success) {
       router.push("/pos");
     }
