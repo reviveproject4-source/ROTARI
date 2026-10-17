@@ -56,6 +56,26 @@ export default function ExpensesPage() {
             <DollarSign className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
             Manajemen Biaya Operasional Toko
           </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Modul add-on opsional untuk pencatatan pengeluaran operasional toko.
+          </p>
+        </div>
+      </div>
+
+      {/* Fitur Add-On Banner */}
+      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-xl bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200 font-black text-xs">
+            🔒 Add-On
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+              Modul Tambahan (Fitur Add-On)
+            </h3>
+            <p className="text-[11px] text-amber-700 dark:text-amber-300">
+              Menu biaya operasional telah disembunyikan dari navigasi utama dan disiapkan sebagai modul add-on.
+            </p>
+          </div>
         </div>
       </div>
 

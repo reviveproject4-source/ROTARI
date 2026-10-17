@@ -60,7 +60,7 @@ export const initialProductsServices: ProductService[] = [
   { id: "ps-7", tenant_id: "tenant-001", name: "Suede & Nubuck Brush", type: "product", cost_price: 35000, sell_price: 75000, stock: 74, is_dead_stock: false, last_sold_at: daysAgo(4) },
   { id: "ps-8", tenant_id: "tenant-001", name: "Leather Conditioner 100ml", type: "product", cost_price: 52000, sell_price: 110000, stock: 46, is_dead_stock: false, last_sold_at: daysAgo(9) },
   { id: "ps-9", tenant_id: "tenant-001", name: "Premium Sneaker Box", type: "product", cost_price: 28000, sell_price: 65000, stock: 38, is_dead_stock: false, last_sold_at: daysAgo(15) },
-  { id: "ps-10", tenant_id: "tenant-001", name: "Old Cleaning Kit", type: "product", cost_price: 20000, sell_price: 40000, stock: 9, is_dead_stock: true, last_sold_at: daysAgo(72) },
+  { id: "ps-10", tenant_id: "tenant-001", name: "Old Cleaning Kit", type: "product", cost_price: 20000, sell_price: 40000, stock: 3, is_dead_stock: true, last_sold_at: daysAgo(72) },
   { id: "ps-11", tenant_id: "tenant-001", name: "Full Sneaker Restoration", type: "service", cost_price: 420000, sell_price: 1950000, duration_minutes: 2880, raw_material_cost: 285000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(1) },
   { id: "ps-12", tenant_id: "tenant-001", name: "Premium Aftercare Package", type: "service", cost_price: 95000, sell_price: 375000, duration_minutes: 150, raw_material_cost: 62000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(0) },
   { id: "ps-13", tenant_id: "tenant-001", name: "Shoe Whitening Express", type: "service", cost_price: 60000, sell_price: 275000, duration_minutes: 150, raw_material_cost: 38000, stock: 0, is_dead_stock: false, last_sold_at: daysAgo(31) },

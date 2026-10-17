@@ -3,14 +3,20 @@
 import { useTenant } from "@/lib/tenant-context";
 import { 
   TrendingUp, 
-  DollarSign, 
   ShoppingBag, 
-  PieChart, 
   MessageSquareText, 
   Building2,
   Wallet,
   CreditCard,
-  ArrowUpRight
+  ArrowUpRight,
+  AlertTriangle,
+  Package,
+  Sparkles,
+  Receipt,
+  ArrowRight,
+  BadgePercent,
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,32 +26,56 @@ export default function OwnerDashboard() {
     tenant, 
     totalRevenue, 
     totalHPP, 
-    totalOperationalExpenses, 
-    netProfit, 
     totalCashReceived,
     totalTransferReceived,
     transactions,
+    productsServices,
+    promoInstructions,
     totalWaSent,
     crmConvertedCount,
     crmConvertedAmount
   } = useTenant();
 
-  // REVISI TREN OMSET: Pilihan HARI (7 Hari Sebelumnya) vs BULAN (7 Bulan Sebelumnya)
+  // Mode Tampilan Tren Omset: HARI (7 Hari Terakhir) vs BULAN (7 Bulan Terakhir)
   const [trendViewMode, setTrendViewMode] = useState<'days7' | 'months7'>('days7');
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
 
+  // 1. Perhitungan Berbasis Nota
+  const validTransactions = transactions.filter((tx) => tx.status !== "cancelled");
+  const totalInvoicesCount = validTransactions.length;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayTransactions = validTransactions.filter((tx) => tx.created_at.startsWith(todayStr));
+  const todayRevenue = todayTransactions.reduce((sum, tx) => sum + tx.total_amount, 0);
+  const todayInvoicesCount = todayTransactions.length;
+
+  // Keuntungan Kotor (Gross Profit) = Total Omset Nota - Total Harga Beli (HPP)
+  const grossProfit = totalRevenue - totalHPP;
+  const grossMarginPercent = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : "0";
+
+  // Perhitungan Persentase Pembayaran Cash vs Transfer
+  const totalReceivedCombined = totalCashReceived + totalTransferReceived;
+  const cashPercent = totalReceivedCombined > 0 ? Math.round((totalCashReceived / totalReceivedCombined) * 100) : 0;
+  const transferPercent = totalReceivedCombined > 0 ? 100 - cashPercent : 0;
+
+  // 2. Notifikasi Stok Menipis (Mendekati Batas Habis <= 5 Unit)
+  const lowStockThreshold = 5;
+  const lowStockProducts = productsServices.filter(
+    (ps) => ps.type === "product" && ps.stock <= lowStockThreshold
+  );
+
+  // 3. Olah Data Tren Omset Berbasis Nota
   const now = new Date();
   const dailyDataMap: { [label: string]: number } = {};
 
-  if (trendViewMode === 'days7') {
-    // 7 Hari Sebelumnya
+  if (trendViewMode === "days7") {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 86400000);
       const dateKey = d.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
       dailyDataMap[dateKey] = 0;
     }
 
-    transactions.forEach((tx) => {
+    validTransactions.forEach((tx) => {
       const txDate = new Date(tx.created_at);
       const diffDays = Math.floor((now.getTime() - txDate.getTime()) / 86400000);
       if (diffDays < 7) {
@@ -56,14 +86,13 @@ export default function OwnerDashboard() {
       }
     });
   } else {
-    // 7 Bulan Sebelumnya
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
       dailyDataMap[monthKey] = 0;
     }
 
-    transactions.forEach((tx) => {
+    validTransactions.forEach((tx) => {
       const txDate = new Date(tx.created_at);
       const monthKey = txDate.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
       if (dailyDataMap[monthKey] !== undefined) {
@@ -80,7 +109,6 @@ export default function OwnerDashboard() {
   const activeLabel = chartLabels[activeIdx] || "";
   const activeVal = chartValues[activeIdx] ?? 0;
 
-  // SVG Line chart points with padding so dots align 100% precisely with text labels below
   const paddingX = 40;
   const graphWidth = 420;
   const points = chartValues.map((val, idx) => {
@@ -99,106 +127,171 @@ export default function OwnerDashboard() {
             <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5" /> Outlet: {tenant.business_name}
             </span>
+            <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 capitalize">
+              Model Usaha: {tenant.business_type === 'restaurant' ? 'Restoran & Cafe' : tenant.business_type === 'retail' ? 'Retail & Toko' : 'Jasa & Reparasi'}
+            </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 mt-1">
             Dashboard Utama Owner
           </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Ringkasan omset berbasis nota kasir harian, penerimaan uang masuk, dan perputaran stok promo.
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Link
+            href="/pos"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Buka Kasir POS</span>
+          </Link>
         </div>
       </div>
 
-      {/* 4 Financial Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      {/* 2. NOTIFIKASI STOK MENDEKATI BATAS (Mendekati Batas Kritis <= 5 Pcs) */}
+      {lowStockProducts.length > 0 && (
+        <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-900/80 rounded-3xl p-5 shadow-sm space-y-3 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-2xl bg-rose-600 text-white shadow-md">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-rose-900 dark:text-rose-200 flex items-center gap-2">
+                  <span>Peringatan Stok Kritis ({lowStockProducts.length} Item Mendekati Batas Habis)</span>
+                  <span className="text-[10px] bg-rose-200 dark:bg-rose-900 text-rose-900 dark:text-rose-200 px-2 py-0.5 rounded-full font-bold">
+                    &le; {lowStockThreshold} unit
+                  </span>
+                </h3>
+                <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+                  Stok barang berikut hampir habis. Segera lakukan kulakan / pembelian bahan baku agar tidak menghambat penjualan.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/inventory"
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            >
+              <span>Restok di Inventory</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+            {lowStockProducts.map((p) => (
+              <div 
+                key={p.id}
+                className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-3 border border-rose-200 dark:border-rose-800 flex items-center justify-between"
+              >
+                <div className="truncate pr-2">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{p.name}</h4>
+                  <p className="text-[10px] text-slate-500">Harga Beli: Rp {p.cost_price.toLocaleString("id-ID")}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950 px-2 py-1 rounded-lg">
+                    Sisa {p.stock} pcs
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 1 & 4. RINGKASAN FINANSIAL BERBASIS NOTA & KEUNTUNGAN KOTOR */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
-        {/* Total Omset */}
+        {/* Card 1: Total Omset Berbasis Nota */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Total Omset</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <Receipt className="w-4 h-4 text-sky-600" /> Total Omset Nota
+            </span>
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-slate-100">
+          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
             Rp {totalRevenue.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400 font-medium">Dari {transactions.length} transaksi kasir</span>
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Hari ini: Rp {todayRevenue.toLocaleString("id-ID")}</span>
+            <span className="font-bold text-sky-600">{todayInvoicesCount} Nota</span>
+          </div>
         </div>
 
-        {/* Pengeluaran */}
+        {/* Card 2: Total Uang Masuk Cash (Tunai Fisik di Laci) */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Total Pengeluaran</span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
-              <PieChart className="w-4 h-4" />
+            <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <Wallet className="w-4 h-4 text-emerald-600" /> Uang Masuk Cash
+            </span>
+            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+              <Wallet className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            Rp {totalOperationalExpenses.toLocaleString("id-ID")}
+          <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+            Rp {totalCashReceived.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400 font-medium">Termasuk gaji, sewa &amp; biaya operasional</span>
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Uang Tunai Fisik Kasir</span>
+            <span className="font-bold text-emerald-600">{cashPercent}% Porsi</span>
+          </div>
         </div>
 
-        {/* Margin Kotor */}
+        {/* Card 3: Total Uang Masuk Transfer & QRIS */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Margin Kotor</span>
-            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
-              <TrendingUp className="w-4 h-4" />
+            <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-indigo-600" /> Uang Masuk Transfer
+            </span>
+            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
+              <CreditCard className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-sky-700 dark:text-sky-300">
-            Rp {(totalRevenue - totalHPP).toLocaleString("id-ID")}
+          <p className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400">
+            Rp {totalTransferReceived.toLocaleString("id-ID")}
           </p>
-          <span className="text-[11px] text-slate-400 font-medium">Omset - HPP, sebelum gaji &amp; biaya operasional</span>
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Rekening Bank &amp; QRIS</span>
+            <span className="font-bold text-indigo-600">{transferPercent}% Porsi</span>
+          </div>
         </div>
 
-        {/* Margin Bersih */}
+        {/* Card 4: Keuntungan Kotor (Gross Profit = Omset Nota - Total Harga Beli) */}
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-3xl p-5 shadow-lg space-y-2">
           <div className="flex items-center justify-between opacity-90">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Margin Bersih (Net Profit)</span>
-            <DollarSign className="w-5 h-5" />
+            <span className="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <BadgePercent className="w-4 h-4" /> Keuntungan Kotor
+            </span>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black">
+              Margin {grossMarginPercent}%
+            </span>
           </div>
-          <p className="text-3xl font-black tracking-tight">
-            Rp {netProfit.toLocaleString("id-ID")}
+          <p className="text-2xl sm:text-3xl font-black tracking-tight">
+            Rp {grossProfit.toLocaleString("id-ID")}
           </p>
-          <p className="text-[11px] opacity-80 font-medium">
-            Omset - HPP - Operational Costs
+          <p className="text-[11px] opacity-85 font-medium pt-1 border-t border-white/20">
+            Omset Nota - Total HPP (Harga Beli)
           </p>
-        </div>
-
-        {/* Total Cash & Transfer */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Penerimaan Cash &amp; Transfer
-          </span>
-          <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between items-center p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold">
-              <span className="flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-emerald-600" /> Cash (Tunai)
-              </span>
-              <span>Rp {totalCashReceived.toLocaleString("id-ID")}</span>
-            </div>
-            <div className="flex justify-between items-center p-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 font-bold">
-              <span className="flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-sky-600" /> Transfer / QRIS
-              </span>
-              <span>Rp {totalTransferReceived.toLocaleString("id-ID")}</span>
-            </div>
-          </div>
         </div>
 
       </div>
 
-      {/* Line Chart: Omzet */}
+      {/* Line Chart: Tren Omzet Berbasis Nota Kasir */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-sky-600" />
-              Omzet
+              Grafik Omzet Berbasis Nota Transaksi
             </h2>
             <div className="mt-2">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
-                {selectedPointIndex !== null ? `Omzet (${activeLabel})` : "Omzet Terakhir"}
+                {selectedPointIndex !== null ? `Omzet Nota (${activeLabel})` : "Omzet Nota Terakhir"}
               </span>
               <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 Rp {activeVal.toLocaleString("id-ID")}
@@ -219,7 +312,7 @@ export default function OwnerDashboard() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
-              Hari
+              Harian (7 Hari)
             </button>
             <button
               onClick={() => {
@@ -232,7 +325,7 @@ export default function OwnerDashboard() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
-              Bulan
+              Bulanan (7 Bulan)
             </button>
           </div>
         </div>
@@ -319,6 +412,92 @@ export default function OwnerDashboard() {
             </svg>
           </div>
         </div>
+      </div>
+
+      {/* 4. LAPORAN STOK SETELAH PROMO DIADAKAN */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Package className="w-5 h-5 text-indigo-600" />
+              Laporan Stok Setelah Promo Diadakan
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Monitoring perputaran sisa stok dan unit terjual sejak instruksi promo CRM dijalankan oleh kasir.
+            </p>
+          </div>
+
+          <Link
+            href="/crm"
+            className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>+ Buat Instruksi Promo CRM Baru</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {promoInstructions.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+            Belum ada promo yang diadakan. Buat instruksi promo di menu CRM untuk mendorong perputaran stok barang/menu.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {promoInstructions.map((pi) => {
+              const currentProduct = productsServices.find((p) => p.id === pi.product_id);
+              const initialStock = pi.stock;
+              const currentStock = currentProduct ? currentProduct.stock : pi.stock;
+              const unitsSold = Math.max(0, initialStock - currentStock);
+              const turnoverPercent = initialStock > 0 ? Math.min(100, Math.round((unitsSold / initialStock) * 100)) : 0;
+
+              return (
+                <div
+                  key={pi.id}
+                  className="p-5 rounded-2xl border border-indigo-100 dark:border-indigo-950 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 dark:from-indigo-950/20 dark:via-slate-900 dark:to-purple-950/10 shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        {pi.status === "active" ? "🟢 Promo Aktif" : "⚪ Promo Selesai"}
+                      </span>
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 mt-0.5">
+                        {pi.product_name}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-black px-2.5 py-1 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200">
+                      Terjual {unitsSold} Unit
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 italic bg-white/80 dark:bg-slate-800/80 p-2.5 rounded-xl border border-indigo-100/60 dark:border-indigo-900/40">
+                    &ldquo;{pi.promo_message}&rdquo;
+                  </p>
+
+                  {/* Progress Bar Penyerapan Stok */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-medium">Stok Awal: <strong>{initialStock}</strong></span>
+                      <span className="text-slate-900 dark:text-slate-100 font-black">
+                        Sisa Stok Sekarang: <span className="text-emerald-600 dark:text-emerald-400">{currentStock} pcs</span>
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${turnoverPercent}%` }}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px] text-slate-400">
+                      <span>Perputaran Stok: {turnoverPercent}% terserap</span>
+                      <span>{currentStock <= 5 ? "⚠️ Mendekati Habis" : "Stok Aman"}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* CRM Conversion Summary */}

@@ -58,12 +58,11 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Owner Nav Items (Operasional Outlet Owner)
+  // Owner Nav Items (Operasional Outlet Owner - Biaya Operasional disembunyikan sebagai Add-On)
   const ownerNavItems = [
     { href: "/", label: "Dashboard Utama", icon: LayoutDashboard, badge: null },
     { href: "/employees", label: "Data Pegawai", icon: Users, badge: null },
     { href: "/inventory", label: "Inventory & Stok", icon: Package, badge: null },
-    { href: "/expenses", label: "Biaya Operasional", icon: DollarSign, badge: null },
     { href: "/crm", label: "CRM Laporan", icon: MessageSquareText, badge: "Laporan" },
     { href: "/settings", label: "Pengaturan Outlet", icon: SettingsIcon, badge: null },
   ];
