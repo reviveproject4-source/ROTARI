@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTenant } from "@/lib/tenant-context";
+import { useTenant, getCustomerChurnStatus, formatReminderMessage } from "@/lib/tenant-context";
 import { openWhatsAppChat } from "@/lib/whatsapp";
 import { 
   MessageSquareText, 
@@ -12,23 +12,36 @@ import {
   Camera, 
   ImageIcon, 
   CheckCircle2,
-  Users,
   Megaphone,
-  Upload,
   UserCheck
 } from "lucide-react";
 
 export default function CashierCrmPage() {
   const { tenant, customers, currentUser, addCrmLog, promoInstructions } = useTenant();
 
-  const dormantCustomers = customers.filter((c) => c.churn_status === "at_risk_45");
-  const lostCustomers = customers.filter((c) => c.churn_status === "lost_90");
+  // Konfigurasi Dinamis dari Pengaturan Manual Owner
+  const dormantDays = tenant.reminder_rules?.dormant_days ?? 30;
+  const lostDays = tenant.reminder_rules?.lost_days ?? 60;
+
+  // Filter pelanggan berdasarkan durasi manual yang ditetapkan oleh Owner
+  const dormantCustomers = customers.filter(
+    (c) => getCustomerChurnStatus(c.last_order_at, tenant.reminder_rules) === "at_risk_45"
+  );
+  const lostCustomers = customers.filter(
+    (c) => getCustomerChurnStatus(c.last_order_at, tenant.reminder_rules) === "lost_90"
+  );
   const activeOwnerPromos = promoInstructions.filter((pi) => pi.status === "active");
 
   // State for Broadcast Form in Cashier CRM
   const [selectedPromoId, setSelectedPromoId] = useState<string>(activeOwnerPromos[0]?.id || "");
   const [customPromoMessage, setCustomPromoMessage] = useState<string>(
-    activeOwnerPromos[0]?.promo_message || `Halo Kak, dapatkan promo spesial potongan 15% untuk layanan & produk pilihan pekan ini di ${tenant.business_name}!`
+    activeOwnerPromos[0]?.promo_message ||
+    formatReminderMessage(
+      tenant.reminder_rules?.promo_template || "Halo Kak {nama}! Ada kabar gembira dari {toko}: {promo}. Jangan sampai ketinggalan ya Kak!",
+      customers[0]?.name || "Pelanggan",
+      tenant.business_name,
+      "Promo Spesial Pekan Ini"
+    )
   );
   const [selectedTargetCustomerId, setSelectedTargetCustomerId] = useState<string>(customers[0]?.id || "");
   const [promoPhotoPreview, setPromoPhotoPreview] = useState<string | null>(null);
@@ -50,7 +63,9 @@ export default function CashierCrmPage() {
 
   const handleSelectOwnerPromo = (pi: any) => {
     setSelectedPromoId(pi.id);
-    setCustomPromoMessage(`Halo Kak! Ada promo spesial dari Owner untuk ${pi.product_name}:\n\n"${pi.promo_message}"\n\nYuk kunjungi ${tenant.business_name} di ${tenant.address}!`);
+    const targetName = selectedTargetCustomer?.name || "Kakak";
+    const template = tenant.reminder_rules?.promo_template || "Halo Kak {nama}! Ada kabar gembira dari {toko}: {promo}.";
+    setCustomPromoMessage(formatReminderMessage(template, targetName, tenant.business_name, `${pi.product_name} - ${pi.promo_message}`));
   };
 
   // TOMBOL KIRIM VIA WA.ME (BROADCAST PROMO)
@@ -60,12 +75,13 @@ export default function CashierCrmPage() {
 
     const finalMessage = `${customPromoMessage}\n\n----------------------------\n*Outlet:* ${tenant.business_name}\n*Alamat:* ${tenant.address}`;
 
+    const status = getCustomerChurnStatus(selectedTargetCustomer.last_order_at, tenant.reminder_rules);
     addCrmLog({
       customer_id: selectedTargetCustomer.id,
       customer_name: selectedTargetCustomer.name,
       customer_phone: selectedTargetCustomer.phone,
       cashier_name: currentUser.name,
-      type: selectedTargetCustomer.churn_status === "lost_90" ? "retention_90" : "retention_45",
+      type: status === "lost_90" ? "retention_90" : "retention_45",
       message_content: finalMessage,
     });
     setBroadcastSuccess(true);
@@ -74,8 +90,13 @@ export default function CashierCrmPage() {
     openWhatsAppChat(selectedTargetCustomer.phone, finalMessage);
   };
 
+  // TOMBOL KIRIM REMINDER 1-KLIK BERDASARKAN GAYA BAHASA OWNER
   const handleSendWaReminder = (cust: any, type: 'retention_45' | 'retention_90') => {
-    const message = customPromoMessage || `Halo Kak ${cust.name}, kami rindu pelayanan sepatu/barang kesayangan Anda di *${tenant.business_name}*!\n\nKhusus hari ini, dapatkan *Voucher Diskon Special Retensi Pelanggan Setia*!\n\nAlamat Toko: ${tenant.address}\n\nBalas pesan ini untuk klaim voucher promo Anda!`;
+    const template = type === 'retention_90'
+      ? (tenant.reminder_rules?.lost_template || "Halo Kak {nama}! Sudah lama nih tidak berjumpa di {toko}. Yuk mampir lagi, ada voucher diskon spesial menanti Kakak lho!")
+      : (tenant.reminder_rules?.dormant_template || "Halo Kak {nama}, kami rindu kunjungan Anda di {toko}! Khusus pekan ini, nikmati penawaran spesial kangen pelanggan setia dari kami. Balas pesan ini untuk info promonya ya Kak!");
+
+    const message = formatReminderMessage(template, cust.name, tenant.business_name, "Voucher Diskon Spesial");
 
     addCrmLog({
       customer_id: cust.id,
@@ -101,6 +122,9 @@ export default function CashierCrmPage() {
             <MessageSquareText className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
             Menu CRM &amp; Broadcast Promo Kasir
           </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Gunakan template gaya bahasa owner untuk mengirimkan reminder 1-klik WhatsApp ke pelanggan yang lama tidak berkunjung.
+          </p>
         </div>
 
         {broadcastSuccess && (
@@ -111,7 +135,7 @@ export default function CashierCrmPage() {
         )}
       </div>
 
-      {/* SECTION NOTIFIKASI OWNER & BROADCAST PROMO (MEMILIH PELANGGAN & TOMBOL KIRIM VIA WA.ME) */}
+      {/* SECTION NOTIFIKASI OWNER & BROADCAST PROMO */}
       <div className="bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-white dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-slate-900 rounded-3xl p-6 border-2 border-indigo-300/80 dark:border-indigo-800 shadow-sm space-y-6">
         
         <div className="flex items-center justify-between border-b border-indigo-200/80 dark:border-indigo-900/60 pb-4">
@@ -121,10 +145,10 @@ export default function CashierCrmPage() {
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 block">
-                Notifikasi Owner &amp; Broadcast Studio
+                Studio Broadcast Promo Kasir
               </span>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Studio Broadcast Promo WA (Pilih Pelanggan &amp; Kirim via wa.me)
+                Kirim Promo WhatsApp Personal (1-Klik via wa.me)
               </h2>
             </div>
           </div>
@@ -158,7 +182,7 @@ export default function CashierCrmPage() {
           </div>
         )}
 
-        {/* 2. Form Broadcast Promo (Pilih Pelanggan, Tulis Text, Foto Galeri HP, Tombol KIRIM via wa.me) */}
+        {/* 2. Form Broadcast Promo */}
         <form onSubmit={handleSendWaBroadcast} className="space-y-5 pt-2">
           
           {/* Pilih Pelanggan Tujuan */}
@@ -171,18 +195,21 @@ export default function CashierCrmPage() {
               onChange={(e) => setSelectedTargetCustomerId(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-bold shadow-sm"
             >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  👤 {c.name} ({c.phone}) — {c.churn_status === 'lost_90' ? 'Lost >90 Hari' : c.churn_status === 'at_risk_45' ? 'Dormant >45 Hari' : 'Pelanggan Aktif'}
-                </option>
-              ))}
+              {customers.map((c) => {
+                const status = getCustomerChurnStatus(c.last_order_at, tenant.reminder_rules);
+                return (
+                  <option key={c.id} value={c.id}>
+                    👤 {c.name} ({c.phone}) — {status === 'lost_90' ? `Lost ≥${lostDays} Hari` : status === 'at_risk_45' ? `Dormant ≥${dormantDays} Hari` : 'Pelanggan Aktif'}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
           {/* Tulis Text Promo */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Tulis / Edit Pesan Promo WhatsApp Kasir *
+              Tulis / Sesuaikan Pesan Promo WhatsApp Kasir *
             </label>
             <textarea
               rows={3}
@@ -237,7 +264,7 @@ export default function CashierCrmPage() {
               className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center space-x-2 transform active:scale-95"
             >
               <Send className="w-4 h-4" />
-              <span>KIRIM</span>
+              <span>KIRIM VIA WHATSAPP</span>
             </button>
           </div>
 
@@ -245,12 +272,17 @@ export default function CashierCrmPage() {
 
       </div>
 
-      {/* Dormant Customers Section (>45 Days) */}
+      {/* Dormant Customers Section (≥ dormantDays Hari) */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <Clock className="w-5 h-5 text-indigo-500" />
-          Pelanggan Dormant (&gt;45 Hari Tanpa Kunjungan) ({dormantCustomers.length})
-        </h2>
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
+            <Clock className="w-5 h-5 text-indigo-500" />
+            Pelanggan Dormant (&ge; {dormantDays} Hari Tanpa Kunjungan) ({dormantCustomers.length})
+          </h2>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+            Sesuai Durasi Owner
+          </span>
+        </div>
 
         <div className="space-y-3">
           {dormantCustomers.length === 0 ? (
@@ -261,7 +293,7 @@ export default function CashierCrmPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
-                      Jatuh Tempo &gt;45 Hari
+                      Jatuh Tempo &ge; {dormantDays} Hari
                     </span>
                     <span className="text-xs text-slate-500">{cust.phone}</span>
                   </div>
@@ -275,7 +307,7 @@ export default function CashierCrmPage() {
                   onClick={() => handleSendWaReminder(cust, 'retention_45')}
                   className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
                 >
-                  <Send className="w-3.5 h-3.5" /> <span>KIRIM</span>
+                  <Send className="w-3.5 h-3.5" /> <span>KIRIM WA</span>
                 </button>
               </div>
             ))
@@ -283,12 +315,17 @@ export default function CashierCrmPage() {
         </div>
       </div>
 
-      {/* Lost Customers Section (>90 Days) */}
+      {/* Lost Customers Section (≥ lostDays Hari) */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <AlertCircle className="w-5 h-5 text-rose-500" />
-          Pelanggan Lost (&gt;90 Hari Tanpa Kunjungan) ({lostCustomers.length})
-        </h2>
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-rose-500" />
+            Pelanggan Lost (&ge; {lostDays} Hari Tanpa Kunjungan) ({lostCustomers.length})
+          </h2>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+            Sesuai Durasi Owner
+          </span>
+        </div>
 
         <div className="space-y-3">
           {lostCustomers.length === 0 ? (
@@ -299,7 +336,7 @@ export default function CashierCrmPage() {
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                      Jatuh Tempo &gt;90 Hari
+                      Jatuh Tempo &ge; {lostDays} Hari
                     </span>
                     <span className="text-xs text-slate-500">{cust.phone}</span>
                   </div>
@@ -313,7 +350,7 @@ export default function CashierCrmPage() {
                   onClick={() => handleSendWaReminder(cust, 'retention_90')}
                   className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-rose-600/20"
                 >
-                  <Send className="w-3.5 h-3.5" /> <span>KIRIM</span>
+                  <Send className="w-3.5 h-3.5" /> <span>KIRIM WA</span>
                 </button>
               </div>
             ))

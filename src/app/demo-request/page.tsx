@@ -2,7 +2,21 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
-import { CheckCircle2, Sparkles, Building2, User, Mail, PhoneCall, ArrowLeft, KeyRound, Rocket } from "lucide-react";
+import { BusinessType } from "@/types";
+import { 
+  CheckCircle2, 
+  Sparkles, 
+  Building2, 
+  User, 
+  Mail, 
+  PhoneCall, 
+  ArrowLeft, 
+  KeyRound, 
+  Rocket, 
+  Store, 
+  Wrench, 
+  Utensils 
+} from "lucide-react";
 import Link from "next/link";
 
 export default function DemoRequestPage() {
@@ -12,6 +26,7 @@ export default function DemoRequestPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState<BusinessType>("retail");
   const [pinCode, setPinCode] = useState("");
   const [createdUserPin, setCreatedUserPin] = useState("123456");
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -28,6 +43,7 @@ export default function DemoRequestPage() {
       email,
       phone,
       businessName,
+      businessType,
       pinCode: usedPin,
     });
 
@@ -35,7 +51,7 @@ export default function DemoRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4 py-8">
       
       {/* Header Back Button */}
       <div className="w-full max-w-lg mb-6 flex justify-between items-center">
@@ -51,7 +67,7 @@ export default function DemoRequestPage() {
         )}
       </div>
 
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
         
         {submittedSuccess ? (
           <div className="text-center space-y-5 py-4">
@@ -72,6 +88,12 @@ export default function DemoRequestPage() {
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Nama Usaha:</span>
                 <span className="font-extrabold text-slate-900 dark:text-slate-100">{businessName}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Model Usaha:</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 uppercase text-[11px]">
+                  {businessType === 'retail' ? 'Retail / Toko' : businessType === 'service' ? 'Jasa & Reparasi' : 'Restoran & Cafe'}
+                </span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-slate-500">Pemilik / Owner:</span>
@@ -100,19 +122,19 @@ export default function DemoRequestPage() {
                 <span>Mulai Gunakan Radar Toko Sekarang</span>
               </Link>
 
-                <button
-                  onClick={() => {
-                    setName("");
-                    setEmail("");
-                    setPhone("");
-                    setBusinessName("");
-                    setPinCode("");
-                    setSubmittedSuccess(false);
-                  }}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
-                >
-                  Daftar Form Baru
-                </button>
+              <button
+                onClick={() => {
+                  setName("");
+                  setEmail("");
+                  setPhone("");
+                  setBusinessName("");
+                  setPinCode("");
+                  setSubmittedSuccess(false);
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
+              >
+                Daftar Form Baru
+              </button>
             </div>
           </div>
         ) : (
@@ -122,19 +144,81 @@ export default function DemoRequestPage() {
                 Uji Coba Gratis 14 Hari
               </span>
               <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                Formulir Pendaftaran Demo Radar Toko
+                Pendaftaran Outlet Radar Toko
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Isi data diri dan informasi bisnis Anda untuk langsung mencoba platform Radar Toko selama 14 hari.
+                Pilih jenis usaha Anda dan nikmati fitur POS &amp; CRM Radar Toko gratis 14 hari.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* Nama Lengkap */}
+              {/* Pilihan Jenis Usaha */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 block">
+                  Pilih Jenis Usaha Anda *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('retail')}
+                    className={`py-2 px-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition ${
+                      businessType === 'retail'
+                        ? 'border-sky-600 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-black shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Store className="w-4 h-4 mb-1" />
+                    <span className="text-[11px]">Retail / Toko</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('service')}
+                    className={`py-2 px-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition ${
+                      businessType === 'service'
+                        ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-black shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Wrench className="w-4 h-4 mb-1" />
+                    <span className="text-[11px]">Jasa Servis</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBusinessType('restaurant')}
+                    className={`py-2 px-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition ${
+                      businessType === 'restaurant'
+                        ? 'border-amber-600 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-black shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Utensils className="w-4 h-4 mb-1" />
+                    <span className="text-[11px]">Resto &amp; F&amp;B</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Nama Usaha */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-purple-600" /> Nama Lengkap Owner
+                  <Building2 className="w-3.5 h-3.5 text-sky-600" /> Nama Usaha / Outlet *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Contoh: Toko Berkah / Kopi Kenangan"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
+                />
+              </div>
+
+              {/* Nama Lengkap Owner */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-purple-600" /> Nama Lengkap Owner *
                 </label>
                 <input
                   type="text"
@@ -142,14 +226,14 @@ export default function DemoRequestPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Contoh: Budi Santoso"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
                 />
               </div>
 
               {/* Email */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-purple-600" /> Alamat Email
+                  <Mail className="w-3.5 h-3.5 text-purple-600" /> Alamat Email *
                 </label>
                 <input
                   type="email"
@@ -157,14 +241,14 @@ export default function DemoRequestPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Contoh: budi@gmail.com"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
                 />
               </div>
 
               {/* No Kontak / WA */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <PhoneCall className="w-3.5 h-3.5 text-emerald-600" /> No Kontak / WhatsApp Active
+                  <PhoneCall className="w-3.5 h-3.5 text-emerald-600" /> No WhatsApp Aktif *
                 </label>
                 <input
                   type="tel"
@@ -172,22 +256,7 @@ export default function DemoRequestPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Contoh: 081234567890"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
-                />
-              </div>
-
-              {/* Nama Usaha */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-sky-600" /> Nama Usaha / Outlet
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="Contoh: Clean Shoes Sepatan"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold"
                 />
               </div>
 
@@ -202,7 +271,7 @@ export default function DemoRequestPage() {
                   value={pinCode}
                   onChange={(e) => setPinCode(e.target.value)}
                   placeholder="123456"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold tracking-widest"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold tracking-widest"
                 />
               </div>
 

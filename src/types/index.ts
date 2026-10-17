@@ -5,6 +5,8 @@ export type DiscountType = 'percent' | 'amount';
 export type WorkStatus = 'baru' | 'terlambat' | 'harus_selesai' | 'ready_for_pickup' | 'completed';
 export type SubscriptionStatus = 'trial' | 'active' | 'expired';
 
+export type BusinessType = 'retail' | 'service' | 'restaurant';
+
 export interface ProspectLead {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface ProspectLead {
 export interface Tenant {
   id: string;
   business_name: string;
+  business_type: BusinessType;
   logo_url?: string;
   address: string;
   phone_number: string;
@@ -28,9 +31,12 @@ export interface Tenant {
   trial_ends_at: string;
   subscription_status: SubscriptionStatus;
   reminder_rules: {
-    dormant_days: number;
-    lost_days: number;
-    stagnant_service_days: number;
+    dormant_days: number;           // Input manual oleh owner
+    lost_days: number;              // Input manual oleh owner
+    stagnant_service_days?: number; // Notifikasi stok/layanan lambat
+    dormant_template?: string;      // Template gaya bahasa owner untuk pelanggan dormant
+    lost_template?: string;         // Template gaya bahasa owner untuk pelanggan lost
+    promo_template?: string;        // Template gaya bahasa owner untuk promo kasir
   };
 }
 
@@ -53,11 +59,14 @@ export interface ProductService {
   tenant_id: string;
   name: string;
   type: 'product' | 'service';
-  cost_price: number; // HPP / Modal
-  sell_price: number; // Harga Jual
+  category?: string;
+  unit?: string;                   // Satuan: pcs, cup, porsi, pasang, botol, dll
+  cost_price: number;              // HPP murni = Harga Beli Bahan / Barang Kulakan
+  sell_price: number;              // Harga Jual ke Konsumen
   duration_minutes?: number;
   raw_material_cost?: number;
   stock: number;
+  min_stock_alert?: number;
   is_dead_stock: boolean;
   last_sold_at?: string;
 }

@@ -18,6 +18,7 @@ import {
 
 export default function OwnerCrmPage() {
   const { 
+    tenant,
     crmLogs, 
     totalWaSent, 
     crmConvertedCount, 
@@ -26,6 +27,9 @@ export default function OwnerCrmPage() {
     promoInstructions,
     addPromoInstruction
   } = useTenant();
+
+  const dormantDays = tenant.reminder_rules?.dormant_days ?? 30;
+  const lostDays = tenant.reminder_rules?.lost_days ?? 60;
 
   // Detect slow-moving stock (is_dead_stock or >14 days without sale and stock > 0)
   const slowStockItems = productsServices.filter(
@@ -88,7 +92,7 @@ export default function OwnerCrmPage() {
           <p className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">
             {totalWaSent} <span className="text-sm font-semibold text-slate-500">Pesan</span>
           </p>
-          <span className="text-[11px] text-slate-400">Reminder Dormant &gt;45d / Lost &gt;90d</span>
+          <span className="text-[11px] text-slate-400">Reminder Dormant &ge;{dormantDays} Hari / Lost &ge;{lostDays} Hari</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">

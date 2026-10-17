@@ -13,7 +13,8 @@ const dateAgo = (days: number) => daysAgo(days).split("T")[0];
 
 export const initialTenant: Tenant = {
   id: "tenant-001",
-  business_name: "ROTARI Shoe & Leather Care",
+  business_name: "Radar Toko Care Center",
+  business_type: "service",
   logo_url: "/logo.png",
   address: "Jl. Pemuda No. 88, Sepatan, Tangerang, Banten 15520",
   phone_number: "0812-3456-7890",
@@ -23,7 +24,14 @@ export const initialTenant: Tenant = {
   created_at: nowIso,
   trial_ends_at: trialExpiryIso,
   subscription_status: "trial",
-  reminder_rules: { dormant_days: 45, lost_days: 90, stagnant_service_days: 14 },
+  reminder_rules: {
+    dormant_days: 30, // Input manual oleh Owner
+    lost_days: 60,    // Input manual oleh Owner
+    stagnant_service_days: 14,
+    dormant_template: "Halo Kak {nama}, kami rindu kunjungan Anda di {toko}! Khusus pekan ini, nikmati penawaran spesial kangen pelanggan setia dari kami. Balas pesan ini untuk info promonya ya Kak!",
+    lost_template: "Halo Kak {nama}! Sudah lama nih tidak berjumpa di {toko}. Yuk mampir lagi, ada voucher diskon spesial menanti Kakak lho!",
+    promo_template: "Halo Kak {nama}! Ada promo spesial hari ini di {toko}: {promo}. Yuk mampir hari ini!",
+  },
 };
 
 export const SUPER_ADMIN_USER: User = {

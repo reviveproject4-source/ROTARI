@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, Role, WorkStatus, PromoInstruction, ProspectLead } from "@/types";
+import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, Role, WorkStatus, PromoInstruction, ProspectLead, BusinessType } from "@/types";
 import { 
   initialTenant, 
   initialUsers, 
@@ -62,7 +62,7 @@ interface TenantContextType {
   setCurrentUserRole: (role: Role) => void;
   setCurrentUserWithPin: (userId: string, pin: string) => boolean;
   loginWithCredentials: (identifier: string, pin: string) => { success: boolean; user?: User };
-  registerDemoTenant: (data: { name: string; email: string; phone: string; businessName: string; pinCode?: string }) => User;
+  registerDemoTenant: (data: { name: string; email: string; phone: string; businessName: string; businessType?: BusinessType; pinCode?: string }) => User;
   updateUserPin: (userId: string, newPin: string) => void;
   toggleAttendance: (userId: string) => void;
   addUser: (user: Omit<User, "id" | "tenant_id" | "is_active">) => void;
@@ -91,6 +91,30 @@ interface TenantContextType {
   totalWaSent: number;
   crmConvertedCount: number;
   crmConvertedAmount: number;
+}
+
+export function getCustomerChurnStatus(
+  lastOrderAt: string,
+  rules?: { dormant_days: number; lost_days: number }
+): 'active' | 'at_risk_45' | 'lost_90' {
+  const dormantDays = rules?.dormant_days ?? 30;
+  const lostDays = rules?.lost_days ?? 60;
+  const diffDays = Math.floor((Date.now() - new Date(lastOrderAt).getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays >= lostDays) return 'lost_90';
+  if (diffDays >= dormantDays) return 'at_risk_45';
+  return 'active';
+}
+
+export function formatReminderMessage(
+  template: string,
+  customerName: string,
+  businessName: string,
+  extraPromo?: string
+): string {
+  return template
+    .replace(/\{nama\}/gi, customerName)
+    .replace(/\{toko\}/gi, businessName)
+    .replace(/\{promo\}/gi, extraPromo || "");
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -470,13 +494,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Task 4: Tenant Baru Registration (Isolated from Demo Tenant)
-  const registerDemoTenant = ({ name, email, phone, businessName, pinCode }: { name: string; email: string; phone: string; businessName: string; pinCode?: string }): User => {
+  const registerDemoTenant = ({ name, email, phone, businessName, businessType, pinCode }: { name: string; email: string; phone: string; businessName: string; businessType?: BusinessType; pinCode?: string }): User => {
     const newTenantId = `tenant-${Date.now()}`;
     const trialExpiryIso = new Date(Date.now() + 14 * 86400000).toISOString();
     
     const newTenant: Tenant = {
       id: newTenantId,
       business_name: businessName,
+      business_type: businessType || "retail",
       logo_url: "/logo.png",
       address: "Outlet Utama",
       phone_number: phone,

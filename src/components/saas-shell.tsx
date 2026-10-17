@@ -100,7 +100,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 relative">
       
-      {!isAuthenticated && <LoginScreen />}
+      {!isAuthenticated && pathname !== '/demo-request' && <LoginScreen />}
 
       <LoginModal 
         isOpen={isLoginModalOpen} 
@@ -316,6 +316,16 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                 {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
               </button>
             )}
+
+            {/* Tombol Log Out (Selalu Terlihat di Mobile & Desktop) */}
+            <button
+              onClick={() => logout()}
+              title="Keluar dari Akun"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold transition shadow-sm"
+            >
+              <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
           </div>
 
         </header>
