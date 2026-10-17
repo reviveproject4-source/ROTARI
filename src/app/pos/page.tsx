@@ -219,7 +219,7 @@ export default function CashierMainDashboardPage() {
 
   const handleSendWaNota = (tx: any) => {
     const sisa = tx.total_amount - tx.paid_amount;
-    const text = `*NOTA DIGITAL OFFICIAL - ${tenant.business_name}*
+    const text = `*NOTA DIGITAL RESMI - ${tenant.business_name}*
 Invoice: ${tx.invoice_number}
 Tanggal: ${new Date(tx.created_at).toLocaleString("id-ID")}
 Pelanggan: ${tx.customer_name}
@@ -240,7 +240,8 @@ ${tenant.address}
 *Syarat & Ketentuan:*
 ${tenant.terms_and_conditions}
 
-Terima kasih atas kunjungan Anda!`;
+Terima kasih atas kunjungan Anda!
+_Radar Toko POS System_`;
 
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
     setWaOpenedStatus(true);
@@ -732,6 +733,7 @@ Terima kasih atas kunjungan Anda!`;
                   )}
                   <h3 className="font-bold text-sm">{tenant.business_name}</h3>
                   <p className="text-[10px] text-slate-500">{tenant.address}</p>
+                  <p className="text-[8px] text-slate-400 font-sans tracking-widest uppercase font-bold pt-0.5">RADAR TOKO POS SYSTEM</p>
                 </div>
 
                 <div className="space-y-1 text-[11px]">
@@ -768,6 +770,7 @@ Terima kasih atas kunjungan Anda!`;
                 <div className="border-t pt-2 text-[9px] text-slate-500 space-y-1 border-amber-200">
                   <p className="font-bold">Syarat &amp; Ketentuan:</p>
                   <p className="whitespace-pre-line">{tenant.terms_and_conditions}</p>
+                  <p className="text-center text-[8px] text-slate-400 pt-1 border-t border-amber-200/50 mt-1">Powered by Radar Toko</p>
                 </div>
               </div>
 

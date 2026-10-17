@@ -28,7 +28,7 @@ export default function CashierCrmPage() {
   // State for Broadcast Form in Cashier CRM
   const [selectedPromoId, setSelectedPromoId] = useState<string>(activeOwnerPromos[0]?.id || "");
   const [customPromoMessage, setCustomPromoMessage] = useState<string>(
-    activeOwnerPromos[0]?.promo_message || "Halo Kak, dapatkan promo spesial potongan 15% untuk layanan sepatu & barang kesayangan Anda pekan ini di ROTARI!"
+    activeOwnerPromos[0]?.promo_message || `Halo Kak, dapatkan promo spesial potongan 15% untuk layanan & produk pilihan pekan ini di ${tenant.business_name}!`
   );
   const [selectedTargetCustomerId, setSelectedTargetCustomerId] = useState<string>(customers[0]?.id || "");
   const [promoPhotoPreview, setPromoPhotoPreview] = useState<string | null>(null);

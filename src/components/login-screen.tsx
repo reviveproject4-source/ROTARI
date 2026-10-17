@@ -21,7 +21,7 @@ export function LoginScreen() {
 
     if (result.success && result.user) {
       setPinCode("");
-      if (result.user.id === "user-super-admin" || result.user.email === "superadmin@rotari.id") {
+      if (result.user.id === "user-super-admin" || result.user.email === "superadmin@radartoko.id" || result.user.email === "superadmin@rotari.id") {
         router.push("/super-admin");
       } else if (result.user.role === "owner") {
         router.push("/");
@@ -37,12 +37,12 @@ export function LoginScreen() {
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6 relative">
         
-        {/* ROTARI Official Logo & Header */}
+        {/* Radar Toko Official Logo & Header */}
         <div className="text-center space-y-3">
           <div className="relative inline-block">
             <img 
               src="/rotari-logo.png" 
-              alt="ROTARI Logo" 
+              alt="Radar Toko Logo" 
               className="w-20 h-20 mx-auto rounded-full object-contain bg-white p-1 shadow-xl shadow-emerald-500/20 ring-4 ring-emerald-500/10"
             />
           </div>
@@ -51,7 +51,7 @@ export function LoginScreen() {
               SaaS Multi-Tenant Platform
             </span>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1.5">
-              ROTARI POS &amp; CRM
+              RADAR TOKO POS &amp; CRM
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Masukkan ID Akun dan Kode PIN Keamanan untuk masuk ke sistem.

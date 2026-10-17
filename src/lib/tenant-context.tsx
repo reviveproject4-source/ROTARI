@@ -167,7 +167,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (!foundUser) {
-      return { user: null, error: "Akun belum terdaftar di ROTARI." };
+      return { user: null, error: "Akun belum terdaftar di Radar Toko." };
     }
 
     if (!foundUser.tenant_id) {
@@ -419,7 +419,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     // 1. Super Admin Isolated Check
     const matchesSuperAdmin = 
       (cleanPin === SUPER_ADMIN_USER.pin_code) &&
-      (!cleanId || cleanId === "superadmin" || cleanId === "superadmin@rotari.id" || cleanId === "super_admin");
+      (!cleanId || cleanId === "superadmin" || cleanId === "superadmin@radartoko.id" || cleanId === "superadmin@rotari.id" || cleanId === "super_admin");
 
     if (matchesSuperAdmin) {
       if (typeof window !== "undefined") {

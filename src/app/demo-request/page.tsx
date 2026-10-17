@@ -88,7 +88,7 @@ export default function DemoRequestPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-              Selamat datang di <strong>ROTARI</strong>! Akun Owner usaha Anda telah aktif untuk 14 hari kedepan. Anda sudah otomatis ter-login.
+              Selamat datang di <strong>Radar Toko</strong>! Akun Owner usaha Anda telah aktif untuk 14 hari kedepan. Anda sudah otomatis ter-login.
             </p>
 
             <div className="pt-2 flex flex-col gap-3">
@@ -97,7 +97,7 @@ export default function DemoRequestPage() {
                 className="w-full py-3.5 px-4 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-lg shadow-purple-600/20 transition flex items-center justify-center gap-2"
               >
                 <Rocket className="w-4 h-4" />
-                <span>Mulai Gunakan ROTARI Sekarang</span>
+                <span>Mulai Gunakan Radar Toko Sekarang</span>
               </Link>
 
                 <button
@@ -122,10 +122,10 @@ export default function DemoRequestPage() {
                 Uji Coba Gratis 14 Hari
               </span>
               <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                Formulir Pendaftaran Demo SaaS
+                Formulir Pendaftaran Demo Radar Toko
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Isi data diri dan informasi bisnis Anda untuk langsung mencoba platform SaaS ROTARI selama 14 hari.
+                Isi data diri dan informasi bisnis Anda untuk langsung mencoba platform Radar Toko selama 14 hari.
               </p>
             </div>
 

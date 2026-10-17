@@ -5,8 +5,8 @@ import { TenantProvider } from "@/lib/tenant-context";
 import { SaasShell } from "@/components/saas-shell";
 
 export const metadata: Metadata = {
-  title: "ROTARI SaaS - Platform Multi-Tenant POS & Retention CRM",
-  description: "Platform Enterprise Multi-Tenant POS & Retention CRM Terintegrasi",
+  title: "Radar Toko - Platform Multi-Tenant POS & Retention CRM",
+  description: "Radar Toko: Platform Enterprise Multi-Tenant POS & Retention CRM Terintegrasi",
 };
 
 export const viewport: Viewport = {

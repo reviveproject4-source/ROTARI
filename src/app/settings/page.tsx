@@ -147,7 +147,7 @@ export default function SettingsPage() {
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 text-sm"
-                placeholder="misal: ROTARI Shoe & Leather Care"
+                placeholder="misal: Toko Berkah / Care Center"
               />
             </div>
 
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                     />
                   </label>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Logo yang diunggah khusus digunakan untuk cetakan header pada Nota Thermal kasir, bukan menggantikan logo aplikasi ROTARI.
+                    Logo yang diunggah khusus digunakan untuk cetakan header pada Nota Thermal kasir, bukan menggantikan logo aplikasi Radar Toko.
                   </p>
                 </div>
               </div>

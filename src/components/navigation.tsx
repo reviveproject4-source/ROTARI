@@ -67,13 +67,13 @@ export function Navigation() {
           <div className="flex items-center space-x-3">
             <img 
               src="/rotari-logo.png" 
-              alt="ROTARI Logo" 
+              alt="Radar Toko Logo" 
               className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700" 
             />
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-base text-slate-900 dark:text-slate-100 tracking-tight">
-                  ROTARI ({tenant.business_name})
+                  Radar Toko • {tenant.business_name}
                 </span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                   currentUser.role === 'owner' 

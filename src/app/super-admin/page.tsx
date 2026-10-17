@@ -44,7 +44,7 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saAuth = sessionStorage.getItem("rotari_sa_auth");
-      if (saAuth === "true" || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id") {
+      if (saAuth === "true" || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@radartoko.id" || currentUser.email === "superadmin@rotari.id") {
         setIsAuthorized(true);
       }
     }
@@ -76,7 +76,7 @@ export default function SuperAdminDashboardPage() {
               Akses Terproteksi
             </span>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-              Portal Super Admin ROTARI
+              Portal Super Admin Radar Toko
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Masukkan 6 digit PIN Otentikasi Super Admin untuk mengakses portal manajemen platform.
@@ -127,7 +127,7 @@ export default function SuperAdminDashboardPage() {
               href="/"
               className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             >
-              Kembali ke Aplikasi ROTARI
+              Kembali ke Aplikasi Radar Toko
             </Link>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function SuperAdminDashboardPage() {
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 mt-1">
-            Portal Super Admin ROTARI (Prospek Demo &amp; Aktivasi Tenant)
+            Portal Super Admin Radar Toko (Prospek Demo &amp; Aktivasi Tenant)
           </h1>
         </div>
 
@@ -282,7 +282,7 @@ export default function SuperAdminDashboardPage() {
                         <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => {
-                              const msg = `Halo Kak ${lead.name} dari ${lead.business_name}, terima kasih telah mendaftar Uji Coba Demo SaaS ROTARI! Kapan waktu yang tepat untuk kita jadwalkan demo online?`;
+                              const msg = `Halo Kak ${lead.name} dari ${lead.business_name}, terima kasih telah mendaftar Uji Coba Demo Radar Toko! Kapan waktu yang tepat untuk kita jadwalkan demo online?`;
                               openWhatsAppChat(lead.phone, msg);
                               setWaOpenedStatus(true);
                               setTimeout(() => setWaOpenedStatus(false), 3500);

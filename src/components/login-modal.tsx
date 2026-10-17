@@ -49,14 +49,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <div className="text-center space-y-2 pt-2">
           <img 
             src="/rotari-logo.png" 
-            alt="ROTARI Logo" 
+            alt="Radar Toko Logo" 
             className="w-14 h-14 mx-auto rounded-full object-contain bg-white p-1 shadow-md border border-slate-200 dark:border-slate-800" 
           />
           <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             Ganti Pengguna &amp; Sesi
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Masukkan ID Akun dan PIN Keamanan untuk berpindah akun.
+            Pilih akun pengguna Radar Toko untuk melanjutkan sesi.
           </p>
         </div>
 

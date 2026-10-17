@@ -29,8 +29,8 @@ export const initialTenant: Tenant = {
 export const SUPER_ADMIN_USER: User = {
   id: "user-super-admin",
   tenant_id: "platform-rotari",
-  name: "Super Admin ROTARI",
-  email: "superadmin@rotari.id",
+  name: "Super Admin Radar Toko",
+  email: "superadmin@radartoko.id",
   role: "superadmin",
   pin_code: "999999",
   is_active: true,

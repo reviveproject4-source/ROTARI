@@ -84,7 +84,8 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
   ];
 
   const isSuperAdminRoute = pathname === "/super-admin";
-  const currentNavItems = (isSuperAdminRoute || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id")
+  const isSuperAdminUser = currentUser.id === "user-super-admin" || currentUser.email === "superadmin@radartoko.id" || currentUser.email === "superadmin@rotari.id";
+  const currentNavItems = (isSuperAdminRoute || isSuperAdminUser)
     ? superAdminNavItems
     : currentUser.role === "owner" 
     ? ownerNavItems 
@@ -126,14 +127,14 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center space-x-3 overflow-hidden">
             <img 
               src="/rotari-logo.png" 
-              alt="ROTARI Logo" 
+              alt="Radar Toko Logo" 
               className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" 
             />
             
             {(!sidebarCollapsed || mobileMenuOpen) && (
               <div className="truncate">
                 <h1 className="font-black text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">
-                  ROTARI
+                  RADAR TOKO
                 </h1>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
                   POS &amp; CRM Platform
@@ -184,7 +185,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {!sidebarCollapsed && (
             <span className="px-3 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">
-              Menu {isSuperAdminRoute || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@rotari.id" ? "Super Admin Platform" : currentUser.role === "owner" ? "Owner Platform" : "Kasir Operasional"}
+              Menu {isSuperAdminRoute || isSuperAdminUser ? "Super Admin Platform" : currentUser.role === "owner" ? "Owner Platform" : "Kasir Operasional"}
             </span>
           )}
 
@@ -360,7 +361,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                 Kembali ke POS Kasir
               </Link>
             </div>
-          ) : pathname === '/super-admin' && currentUser.id !== 'user-super-admin' && currentUser.email !== 'superadmin@rotari.id' ? (
+          ) : pathname === '/super-admin' && !isSuperAdminUser ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-4">
               <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-black text-2xl">
                 🔒
@@ -369,7 +370,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                 Akses Ditolak — Khusus Super Admin
               </h2>
               <p className="text-xs text-slate-500 max-w-sm">
-                Halaman ini dilindungi khusus untuk Super Admin Platform ROTARI.
+                Halaman ini dilindungi khusus untuk Super Admin Platform Radar Toko.
               </p>
               <Link href="/" className="px-5 py-2.5 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 transition">
                 Kembali ke Dashboard Outlet
