@@ -90,6 +90,20 @@ export async function persistCustomerToSupabase(customer: Customer): Promise<Syn
   }
 }
 
+export async function deleteCustomerFromSupabase(id: string): Promise<SyncResult> {
+  try {
+    const { error } = await supabase.from("customers").delete().eq("id", id);
+    if (error) {
+      console.error("Supabase Customer Delete Error:", error);
+      return { success: false, error };
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("Supabase Customer Delete Exception:", err);
+    return { success: false, error: err };
+  }
+}
+
 export async function persistProductServiceToSupabase(item: ProductService): Promise<SyncResult> {
   try {
     const { error } = await supabase.from("products_services").upsert({

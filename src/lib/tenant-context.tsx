@@ -19,6 +19,7 @@ import {
   persistTenantToSupabase,
   persistUserToSupabase,
   persistCustomerToSupabase,
+  deleteCustomerFromSupabase,
   persistProductServiceToSupabase,
   deleteProductServiceFromSupabase,
   persistExpenseToSupabase,
@@ -71,11 +72,15 @@ interface TenantContextType {
   deleteProductService: (id: string) => void;
   addExpense: (expense: Omit<OperationalExpense, "id" | "tenant_id">) => void;
   deleteExpense: (id: string) => void;
-  addTransaction: (tx: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at">) => Transaction;
+  addTransaction: (tx: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at"> & { created_at?: string }) => Transaction;
   updateWorkStatus: (transactionId: string, status: WorkStatus) => void;
   settleTransaction: (transactionId: string) => void;
   addCrmLog: (log: Omit<CrmLog, "id" | "tenant_id" | "sent_at" | "is_converted">) => void;
   addCustomer: (cust: Omit<Customer, "id" | "tenant_id" | "last_order_at" | "churn_status">) => Customer;
+  updateCustomer: (id: string, updated: Partial<Customer>) => void;
+  deleteCustomer: (id: string) => void;
+  approveSpecialDiscount: (transactionId: string) => void;
+  rejectSpecialDiscount: (transactionId: string) => void;
   addPromoInstruction: (instr: Omit<PromoInstruction, "id" | "tenant_id" | "created_at" | "status">) => void;
   completePromoInstruction: (id: string) => void;
   
@@ -800,12 +805,32 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return newCust;
   };
 
+  const updateCustomer = (id: string, updatedData: Partial<Customer>) => {
+    setAllCustomers((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const updated = { ...c, ...updatedData };
+          persistCustomerToSupabase(updated);
+          return updated;
+        }
+        return c;
+      })
+    );
+  };
+
+  const deleteCustomer = (id: string) => {
+    setAllCustomers((prev) => prev.filter((c) => c.id !== id));
+    deleteCustomerFromSupabase(id);
+  };
+
   const addTransaction = (
-    tx: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at">
+    tx: Omit<Transaction, "id" | "tenant_id" | "invoice_number" | "created_at"> & { created_at?: string }
   ): Transaction => {
     const invoiceNum = `INV/${new Date().getFullYear()}/${String(
       transactions.length + 1
     ).padStart(3, "0")}`;
+
+    const remaining = Math.max(0, tx.total_amount - tx.paid_amount);
 
     const newTx: Transaction = {
       branch_name: tx.branch_name || activeTenant.address || "Outlet Utama",
@@ -813,7 +838,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       id: `tx-${Date.now()}`,
       tenant_id: activeTenant.id,
       invoice_number: invoiceNum,
-      created_at: new Date().toISOString(),
+      remaining_amount: tx.remaining_amount !== undefined ? tx.remaining_amount : remaining,
+      dp_amount: tx.dp_amount !== undefined ? tx.dp_amount : (tx.payment_stage === 'dp' ? tx.paid_amount : 0),
+      discount_special_status: tx.discount_special_requested ? (tx.discount_special_status || 'pending') : 'none',
+      created_at: tx.created_at || new Date().toISOString(),
     };
 
     setAllTransactions((prev) => [newTx, ...prev]);
@@ -882,6 +910,39 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             ...t,
             status: "paid" as const,
             paid_amount: t.total_amount,
+            remaining_amount: 0,
+          };
+          persistTransactionToSupabase(updated);
+          return updated;
+        }
+        return t;
+      })
+    );
+  };
+
+  const approveSpecialDiscount = (transactionId: string) => {
+    setAllTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id === transactionId) {
+          const updated: Transaction = {
+            ...t,
+            discount_special_status: "approved",
+          };
+          persistTransactionToSupabase(updated);
+          return updated;
+        }
+        return t;
+      })
+    );
+  };
+
+  const rejectSpecialDiscount = (transactionId: string) => {
+    setAllTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id === transactionId) {
+          const updated: Transaction = {
+            ...t,
+            discount_special_status: "rejected",
           };
           persistTransactionToSupabase(updated);
           return updated;
@@ -947,6 +1008,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         settleTransaction,
         addCrmLog,
         addCustomer,
+        updateCustomer,
+        deleteCustomer,
+        approveSpecialDiscount,
+        rejectSpecialDiscount,
         addPromoInstruction,
         completePromoInstruction,
         totalRevenue,

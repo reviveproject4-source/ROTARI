@@ -25,7 +25,14 @@ import {
   X,
   Phone,
   ArrowDownRight,
-  Check
+  Check,
+  Upload,
+  Download,
+  Printer,
+  Filter,
+  FileSpreadsheet,
+  ShieldCheck,
+  UserCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo } from "react";
@@ -52,7 +59,11 @@ export default function OwnerDashboard() {
     promoInstructions,
     totalWaSent,
     crmConvertedCount,
-    crmConvertedAmount
+    crmConvertedAmount,
+    importCustomers,
+    approveSpecialDiscount,
+    rejectSpecialDiscount,
+    users
   } = useTenant();
 
   // Mode Tampilan Tren Omset: HARI (7 Hari Terakhir) vs BULAN (7 Bulan Terakhir)
@@ -68,6 +79,27 @@ export default function OwnerDashboard() {
 
   // Modal Daftar Nota Terbayarkan (Cash vs Transfer)
   const [invoiceModalType, setInvoiceModalType] = useState<'cash' | 'transfer' | null>(null);
+
+  // Modal Import Konsumen POS & Modal Export Laporan
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
+
+  // Filter Ekspor Laporan: Periode, Status Bayar, Cabang, Kasir
+  const [exportMonth, setExportMonth] = useState<string>("all");
+  const [exportPaymentStatus, setExportPaymentStatus] = useState<string>("all");
+  const [exportBranch, setExportBranch] = useState<string>("all");
+  const [exportCashier, setExportCashier] = useState<string>("all");
+
+  // State Universal Multi-POS Customer Importer
+  const [importPreset, setImportPreset] = useState<string>("auto");
+  const [importRawText, setImportRawText] = useState<string>("");
+  const [importFileName, setImportFileName] = useState<string>("");
+  const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
+
+  // Pengajuan Diskon Special yang Menunggu ACC Owner
+  const pendingDiscountRequests = transactions.filter(
+    (tx) => tx.discount_special_requested && tx.discount_special_status === "pending"
+  );
 
   // 1. Perhitungan Berbasis Nota
   const validTransactions = transactions.filter((tx) => tx.status !== "cancelled");
@@ -183,6 +215,191 @@ export default function OwnerDashboard() {
     return `${x},${y}`;
   }).join(" ");
 
+  // 5. Opsi Filter Laporan & Ringkasan Metrik Sesuai Instruksi Owner
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((tx) => {
+      const d = new Date(tx.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      set.add(key);
+    });
+    return Array.from(set).sort().reverse().map((key) => {
+      const [year, month] = key.split("-");
+      const d = new Date(Number(year), Number(month) - 1, 1);
+      return {
+        key,
+        label: d.toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+      };
+    });
+  }, [transactions]);
+
+  const availableBranches = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((tx) => set.add(tx.branch_name || "Outlet Utama"));
+    return Array.from(set).sort();
+  }, [transactions]);
+
+  const availableCashiers = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((tx) => {
+      if (tx.cashier_name) set.add(tx.cashier_name);
+    });
+    users.forEach((u) => {
+      if (u.name) set.add(u.name);
+    });
+    return Array.from(set).sort();
+  }, [transactions, users]);
+
+  // Filtered transactions for report
+  const reportFilteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      if (exportPaymentStatus !== "all" && tx.status !== exportPaymentStatus) return false;
+      if (exportMonth !== "all") {
+        const d = new Date(tx.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (key !== exportMonth) return false;
+      }
+      if (exportBranch !== "all") {
+        const branch = tx.branch_name || "Outlet Utama";
+        if (branch !== exportBranch) return false;
+      }
+      if (exportCashier !== "all" && tx.cashier_name !== exportCashier) return false;
+      return true;
+    });
+  }, [transactions, exportPaymentStatus, exportMonth, exportBranch, exportCashier]);
+
+  // Mandatory Header Metrics for Report
+  const reportTotalOmset = useMemo(() => {
+    return reportFilteredTransactions.reduce(
+      (sum, tx) => sum + (tx.status !== "cancelled" ? tx.total_amount : 0),
+      0
+    );
+  }, [reportFilteredTransactions]);
+
+  const reportTotalWaSent = useMemo(() => {
+    return reportFilteredTransactions.filter(
+      (tx) => tx.status !== "cancelled" && (tx.crm_attributed_log_id || (tx.customer_phone && tx.total_amount > 0))
+    ).length;
+  }, [reportFilteredTransactions]);
+
+  const reportTotalHPP = useMemo(() => {
+    return reportFilteredTransactions
+      .filter((tx) => tx.status !== "cancelled")
+      .reduce((sum, tx) => sum + tx.items.reduce((s, i) => s + (i.cost_price || 0) * (i.quantity || 1), 0), 0);
+  }, [reportFilteredTransactions]);
+
+  const reportGrossProfit = reportTotalOmset - reportTotalHPP;
+  const reportGrossMarginPercent = reportTotalOmset > 0
+    ? ((reportGrossProfit / reportTotalOmset) * 100).toFixed(1)
+    : "0";
+
+  const handleExportReportCSV = () => {
+    const headerLines = [
+      `LAPORAN KINERJA TRANSAKSI & NOTA - ${tenant.business_name.toUpperCase()}`,
+      `Filter Periode: ${exportMonth === 'all' ? 'Semua Periode' : exportMonth}`,
+      `Filter Status Bayar: ${exportPaymentStatus === 'all' ? 'Semua Status' : exportPaymentStatus.toUpperCase()}`,
+      `Filter Cabang: ${exportBranch === 'all' ? 'Semua Cabang' : exportBranch}`,
+      `Filter Kasir: ${exportCashier === 'all' ? 'Semua Kasir' : exportCashier}`,
+      `Tanggal Unduh: ${new Date().toLocaleString("id-ID")}`,
+      "",
+      `RINGKASAN METRIK LAPORAN (HEADER):`,
+      `1. Total Omset: Rp ${reportTotalOmset.toLocaleString("id-ID")}`,
+      `2. Total WA Terkirim (Nota Konsumen Kembali): ${reportTotalWaSent} Pesan`,
+      `3. Jumlah Margin Kotor: Rp ${reportGrossProfit.toLocaleString("id-ID")} (${reportGrossMarginPercent}%)`,
+      "",
+      "No Invoice,Tanggal,Pelanggan,No WhatsApp,Cabang,Nama Kasir,Status Bayar,Subtotal,Diskon,Total Tagihan,Dibayar,Sisa Belum Terbayar,Margin Kotor",
+    ];
+
+    const dataRows = reportFilteredTransactions.map((tx) => {
+      const itemsHpp = tx.items.reduce((sum, i) => sum + (i.cost_price || 0) * (i.quantity || 1), 0);
+      const grossMargin = tx.total_amount - itemsHpp;
+      const sisa = tx.total_amount - tx.paid_amount;
+      return [
+        `"${tx.invoice_number}"`,
+        `"${new Date(tx.created_at).toLocaleDateString("id-ID")}"`,
+        `"${tx.customer_name}"`,
+        `"${tx.customer_phone || "-"}"`,
+        `"${tx.branch_name || "Outlet Utama"}"`,
+        `"${tx.cashier_name}"`,
+        `"${tx.status.toUpperCase()}"`,
+        tx.subtotal,
+        tx.discount_amount,
+        tx.total_amount,
+        tx.paid_amount,
+        sisa,
+        grossMargin,
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [...headerLines, ...dataRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `laporan_transaksi_${exportMonth}_${exportPaymentStatus}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDashboardFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) setImportRawText(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExecuteDashboardImport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importRawText.trim()) return;
+
+    const lines = importRawText.trim().split("\n");
+    const toImport: any[] = [];
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.toLowerCase().startsWith("nama") || trimmed.toLowerCase().startsWith("customer")) return;
+
+      const delimiter = trimmed.includes("\t") ? "\t" : trimmed.includes(";") ? ";" : ",";
+      const parts = trimmed.split(delimiter).map((p) => p.replace(/^["']|["']$/g, "").trim());
+
+      if (parts.length >= 2) {
+        let name = parts[0] || "Konsumen";
+        let rawPhone = parts[1] || "";
+        let cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+        if (cleanPhone.startsWith("62")) cleanPhone = "0" + cleanPhone.slice(2);
+        else if (cleanPhone.startsWith("8")) cleanPhone = "0" + cleanPhone;
+
+        if (cleanPhone.length >= 9) {
+          toImport.push({
+            name,
+            phone: cleanPhone,
+            email: parts[2] && parts[2].includes("@") ? parts[2] : undefined,
+            address: parts[3] || undefined,
+            total_spent: Number(parts[4]) || 0,
+            notes: `Import POS Dashboard (${importPreset.toUpperCase()})`,
+          });
+        }
+      }
+    });
+
+    if (toImport.length > 0) {
+      const count = importCustomers(toImport);
+      setImportSuccessCount(count);
+      setImportRawText("");
+      setImportFileName("");
+      setTimeout(() => {
+        setShowImportModal(false);
+        setImportSuccessCount(null);
+      }, 2500);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12 max-w-7xl mx-auto">
       
@@ -205,16 +422,116 @@ export default function OwnerDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowImportModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 hover:bg-sky-100 border border-sky-200 dark:border-sky-800 text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+          >
+            <Upload className="w-4 h-4 text-sky-600" />
+            <span>Import Konsumen POS</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setShowExportModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+          >
+            <Filter className="w-4 h-4" />
+            <span>Filter &amp; Ekspor Laporan</span>
+          </button>
+
           <Link
             href="/crm"
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-md shadow-purple-600/20 transition flex items-center gap-1.5"
           >
             <Receipt className="w-4 h-4" />
-            <span>Buka Laporan &amp; Ekspor</span>
+            <span>Modul CRM</span>
           </Link>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* NOTIFIKASI PERSETUJUAN DISKON SPECIAL KASIR (APPROVAL OWNER) */}
+      {/* ======================================================== */}
+      {pendingDiscountRequests.length > 0 && (
+        <div className="bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 dark:from-rose-950/40 dark:via-amber-950/30 dark:to-rose-950/20 rounded-3xl p-5 border-2 border-rose-400 dark:border-rose-800 shadow-md space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 bg-rose-600 text-white rounded-xl shadow">
+                <ShieldCheck className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-rose-900 dark:text-rose-100 flex items-center gap-2">
+                  <span>Permintaan Diskon Special Kasir Menunggu Persetujuan</span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+                    {pendingDiscountRequests.length} Menunggu ACC
+                  </span>
+                </h3>
+                <p className="text-xs text-rose-700 dark:text-rose-300">
+                  Kasir mengajukan potongan diskon khusus. Konfirmasi untuk menyetujui atau menolak.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            {pendingDiscountRequests.map((req) => {
+              const cashier = users.find((u) => u.id === req.cashier_id);
+              return (
+                <div
+                  key={req.id}
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-rose-200 dark:border-rose-900 shadow-sm flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold block">
+                          Nota #{req.id.slice(-6).toUpperCase()}
+                        </span>
+                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                          {req.customer_name || "Pelanggan Umum"}
+                        </h4>
+                      </div>
+                      <span className="text-xs font-black text-rose-600 bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-800">
+                        Total Rp {req.total_amount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                        <span>Kasir: <strong>{cashier?.name || "Kasir"}</strong></span>
+                        <span>DP: Rp {(req.dp_amount || 0).toLocaleString("id-ID")}</span>
+                      </div>
+                      <p className="italic text-rose-700 dark:text-rose-400 font-medium">
+                        &ldquo;{req.discount_special_note || "Permohonan diskon khusus pelanggan"}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => rejectSpecialDiscount(req.id)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+                    >
+                      Tolak
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => approveSpecialDiscount(req.id)}
+                      className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Setujui Diskon</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* NOTIFIKASI OWNER: KONSUMEN BELUM KEMBALI (>30, >45, >60, >90, SEMUA) */}
@@ -986,6 +1303,384 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL FILTER & EKSPOR LAPORAN POS */}
+      {/* ======================================================== */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 my-8 relative">
+            <button
+              onClick={() => setShowExportModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-xl">
+                  <Filter className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-slate-100 text-lg">
+                    Filter &amp; Ekspor Laporan Transaksi POS
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Saring data laporan berdasarkan periode bulan, status pembayaran, cabang, dan kasir pelaksana.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Pilihan Filter */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+              {/* 1. Periode Bulan */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  Periode (Bulan)
+                </label>
+                <select
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(e.target.value)}
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="all">Semua Periode</option>
+                  {availableMonths.map((m) => (
+                    <option key={m.key} value={m.key}>
+                      Bulan: {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Status Bayar */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  Status Pembayaran
+                </label>
+                <select
+                  value={exportPaymentStatus}
+                  onChange={(e) => setExportPaymentStatus(e.target.value)}
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="all">Semua Status Bayar</option>
+                  <option value="paid">Lunas Penuh</option>
+                  <option value="dp">Ada DP / Belum Lunas</option>
+                  <option value="cancelled">Dibatalkan</option>
+                </select>
+              </div>
+
+              {/* 3. Cabang */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  Cabang Outlet
+                </label>
+                <select
+                  value={exportBranch}
+                  onChange={(e) => setExportBranch(e.target.value)}
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="all">Semua Cabang</option>
+                  {availableBranches.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4. Kasir / Pegawai */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                  Kasir / Pegawai
+                </label>
+                <select
+                  value={exportCashier}
+                  onChange={(e) => setExportCashier(e.target.value)}
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="all">Semua Kasir</option>
+                  {availableCashiers.map((cName) => (
+                    <option key={cName} value={cName}>
+                      {cName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* HEADER LAPORAN (WAJIB: Total Omset, Total WA Terkirim, Margin Kotor) */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-sky-950/20 p-5 rounded-2xl border-2 border-emerald-300 dark:border-emerald-800 space-y-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
+                Ringkasan Eksekutif Header Laporan Terfilter:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* 1. Total Omset */}
+                <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900">
+                  <span className="text-[11px] font-bold text-slate-500 block">Jumlah Total Omset</span>
+                  <p className="text-xl font-black text-slate-900 dark:text-slate-100">
+                    Rp {reportTotalOmset.toLocaleString("id-ID")}
+                  </p>
+                  <span className="text-[10px] text-slate-400">
+                    {reportFilteredTransactions.length} nota transaksi
+                  </span>
+                </div>
+
+                {/* 2. Total WA Terkirim */}
+                <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-teal-200 dark:border-teal-900">
+                  <span className="text-[11px] font-bold text-slate-500 block">Total WA Terkirim</span>
+                  <p className="text-xl font-black text-teal-700 dark:text-teal-300">
+                    {reportTotalWaSent} Pesan
+                  </p>
+                  <span className="text-[10px] text-slate-400">
+                    Berdasarkan nota konsumen kembali
+                  </span>
+                </div>
+
+                {/* 3. Jumlah Margin Kotor */}
+                <div className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-sky-200 dark:border-sky-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-500 block">Jumlah Margin Kotor</span>
+                    <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.2 rounded">
+                      {reportGrossMarginPercent}%
+                    </span>
+                  </div>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    Rp {reportGrossProfit.toLocaleString("id-ID")}
+                  </p>
+                  <span className="text-[10px] text-slate-400">
+                    Omset dikurangi HPP beli bahan
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Tabel Transaksi Terfilter */}
+            <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+              <div className="max-h-60 overflow-y-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black uppercase text-[10px] tracking-wider sticky top-0">
+                    <tr>
+                      <th className="py-2.5 px-3">No. Nota</th>
+                      <th className="py-2.5 px-3">Tanggal</th>
+                      <th className="py-2.5 px-3">Kasir</th>
+                      <th className="py-2.5 px-3">Konsumen</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">DP (Uang Muka)</th>
+                      <th className="py-2.5 px-3 text-right">Sisa Belum Bayar</th>
+                      <th className="py-2.5 px-3 text-right">Total Tagihan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    {reportFilteredTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center text-slate-400 italic">
+                          Tidak ada transaksi yang cocok dengan kriteria filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      reportFilteredTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-slate-100">
+                            {tx.invoice_number}
+                          </td>
+                          <td className="py-2.5 px-3 text-[11px] text-slate-500">
+                            {new Date(tx.created_at).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
+                          </td>
+                          <td className="py-2.5 px-3 font-medium">{tx.cashier_name}</td>
+                          <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-slate-100">
+                            {tx.customer_name || "Pelanggan Umum"}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {tx.status === "cancelled" ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
+                                Batal
+                              </span>
+                            ) : (tx.remaining_amount || 0) > 0 ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                DP (Sisa Rp {(tx.remaining_amount || 0).toLocaleString("id-ID")})
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Lunas
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-600 font-mono">
+                            Rp {(tx.dp_amount || 0).toLocaleString("id-ID")}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-amber-600">
+                            Rp {(tx.remaining_amount || 0).toLocaleString("id-ID")}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 dark:text-slate-100">
+                            Rp {tx.total_amount.toLocaleString("id-ID")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-xs text-slate-500 font-medium">
+                Menampilkan <strong>{reportFilteredTransactions.length}</strong> transaksi dari total {transactions.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-bold transition flex items-center gap-1.5"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Cetak Laporan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportReportCSV}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download File CSV / Excel</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL UNIVERSAL MULTI-POS CUSTOMER IMPORTER */}
+      {/* ======================================================== */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 my-8 relative">
+            <button
+              onClick={() => {
+                setShowImportModal(false);
+                setImportSuccessCount(null);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 rounded-xl">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-slate-100 text-lg">
+                    Import Data Konsumen dari POS Lain
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Pindahkan database pelanggan Anda dari Moka, Pawoon, Majoo, Olsera, Kasir Pintar, atau file Excel/CSV.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {importSuccessCount !== null && (
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center gap-2 text-xs font-bold animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <span>
+                  Alhamdulillah! Berhasil mengimpor <strong>{importSuccessCount}</strong> data konsumen ke database Radar Toko.
+                </span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecuteDashboardImport} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 dark:text-slate-300">
+                  Pilih Format Aplikasi POS Asal:
+                </label>
+                <select
+                  value={importPreset}
+                  onChange={(e) => setImportPreset(e.target.value)}
+                  className="w-full font-bold px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="auto">Deteksi Otomatis (Semua Format)</option>
+                  <option value="moka">Moka POS (Export Pelanggan)</option>
+                  <option value="pawoon">Pawoon POS (CSV Customer)</option>
+                  <option value="majoo">Majoo (Daftar Pelanggan)</option>
+                  <option value="olsera">Olsera POS (Kontak Pelanggan)</option>
+                  <option value="kasirpintar">Kasir Pintar (Database Kontak)</option>
+                  <option value="excel">File Excel / CSV Bebas (Nama, Telepon, Email, Alamat, Total Belanja)</option>
+                </select>
+              </div>
+
+              {/* Upload File Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Pilih File CSV / TXT / TSV:</span>
+                  {importFileName && (
+                    <span className="text-[10px] text-sky-600 font-mono">
+                      File: {importFileName}
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="file"
+                  accept=".csv, .txt, .tsv"
+                  onChange={handleDashboardFileUpload}
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-2"
+                />
+              </div>
+
+              {/* Atau Paste Teks Langsung */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 dark:text-slate-300">
+                  Atau Salin &amp; Tempel (Paste) Teks dari Spreadsheet Excel di sini:
+                </label>
+                <textarea
+                  rows={6}
+                  value={importRawText}
+                  onChange={(e) => setImportRawText(e.target.value)}
+                  placeholder="Nama Pelanggan, No Telepon / WhatsApp, Email, Alamat, Total Belanja
+Budi Santoso, 08123456789, budi@email.com, Jl. Melati No. 12, 450000
+Siti Aminah, 08571234567, siti@email.com, Jl. Kenanga No. 5, 250000"
+                  className="w-full font-mono text-[11px] p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Format otomatis menyesuaikan pemisah koma (,), titik koma (;), atau tab dari copy-paste tabel Excel.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportSuccessCount(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!importRawText.trim()}
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-black shadow-md shadow-sky-600/20 transition flex items-center gap-1.5"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Mulai Import Data Konsumen</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

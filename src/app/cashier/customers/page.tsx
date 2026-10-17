@@ -20,7 +20,11 @@ import {
   Phone,
   ArrowRight,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Pencil,
+  Trash2,
+  UserPlus,
+  Plus
 } from "lucide-react";
 
 type PosPreset = "auto" | "moka" | "pawoon" | "majoo" | "olsera" | "kasir_pintar" | "standard_excel";
@@ -41,8 +45,28 @@ interface ParsedCustomerPreview {
 }
 
 export default function CashierCustomersPage() {
-  const { customers, currentUser, importCustomers, tenant } = useTenant();
+  const { customers, currentUser, importCustomers, addCustomer, updateCustomer, deleteCustomer, tenant } = useTenant();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
+
+  // Form input konsumen baru (bisa dilakukan oleh kasir & owner)
+  const [newCustForm, setNewCustForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    notes: "",
+  });
+
+  // Form edit konsumen (khusus owner/kepala cabang)
+  const [editCustForm, setEditCustForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    notes: "",
+  });
   const [activeTab, setActiveTab] = useState<"paste" | "file">("file");
   const [selectedPreset, setSelectedPreset] = useState<PosPreset>("auto");
   const [rawText, setRawText] = useState("");
@@ -355,6 +379,18 @@ export default function CashierCustomersPage() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Tombol Input Konsumen Baru - Bisa dilakukan oleh KASIR & OWNER */}
+          <button
+            onClick={() => {
+              setNewCustForm({ name: "", phone: "", email: "", address: "", notes: "" });
+              setShowAddModal(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Input Konsumen Baru</span>
+          </button>
+
           {currentUser.role === "owner" ? (
             <>
               <button
@@ -375,8 +411,8 @@ export default function CashierCustomersPage() {
             </>
           ) : (
             <div className="flex items-center space-x-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-              <Lock className="w-4 h-4" />
-              <span>Mode Read-Only Kasir</span>
+              <Lock className="w-3.5 h-3.5" />
+              <span>Kasir: Input Diizinkan • Edit/Hapus Khusus Owner</span>
             </div>
           )}
         </div>
@@ -539,16 +575,52 @@ export default function CashierCustomersPage() {
                       })}
                     </td>
                     <td className="py-3 text-right pr-2">
-                      <a
-                        href={`https://wa.me/${c.phone.replace(/^0/, "62")}?text=Halo%20Kak%20${encodeURIComponent(c.name)}%2C%20terima%20kasih%20telah%20menjadi%20pelanggan%20setia%20kami.`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 dark:text-emerald-300 font-bold text-[11px] transition"
-                        title="Chat WhatsApp"
-                      >
-                        <Phone className="w-3 h-3" />
-                        <span>Chat WA</span>
-                      </a>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href={`https://wa.me/${c.phone.replace(/^0/, "62")}?text=Halo%20Kak%20${encodeURIComponent(c.name)}%2C%20terima%20kasih%20telah%20menjadi%20pelanggan%20setia%20kami.`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 dark:text-emerald-300 font-bold text-[11px] transition"
+                          title="Chat WhatsApp"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span className="hidden sm:inline">WA</span>
+                        </a>
+
+                        {/* Fitur Edit & Hapus KONSUMEN: KHUSUS OWNER / KEPALA CABANG */}
+                        {currentUser.role === "owner" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingCustomer(c);
+                                setEditCustForm({
+                                  name: c.name,
+                                  phone: c.phone,
+                                  email: c.email || "",
+                                  address: c.address || "",
+                                  notes: c.notes || ""
+                                });
+                              }}
+                              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-950/40 text-sky-600 dark:text-sky-400 transition"
+                              title="Edit Data Konsumen (Khusus Owner)"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Yakin ingin menghapus data konsumen "${c.name}"? Data ini akan dihapus dari sistem.`)) {
+                                  deleteCustomer(c.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 transition"
+                              title="Hapus Konsumen (Khusus Owner)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -822,6 +894,270 @@ export default function CashierCustomersPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: INPUT KONSUMEN BARU (KASIR & OWNER BISA INPUT) */}
+      {/* ======================================================== */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 rounded-xl">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                    Input Konsumen Baru
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {currentUser.role === 'owner' ? 'Akses Owner / Kepala Cabang' : 'Akses Kasir (Tambah Pelanggan Baru)'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newCustForm.name.trim() || !newCustForm.phone.trim()) {
+                  alert("Nama dan Nomor WhatsApp/HP wajib diisi!");
+                  return;
+                }
+                const cleanPhone = newCustForm.phone.trim().replace(/[^0-9]/g, "");
+                addCustomer({
+                  name: newCustForm.name.trim(),
+                  phone: cleanPhone.startsWith("62") ? "0" + cleanPhone.slice(2) : cleanPhone,
+                  email: newCustForm.email.trim() || undefined,
+                  address: newCustForm.address.trim() || undefined,
+                  notes: newCustForm.notes.trim() || undefined,
+                });
+                setShowAddModal(false);
+                setNewCustForm({ name: "", phone: "", email: "", address: "", notes: "" });
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Nama Konsumen *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCustForm.name}
+                  onChange={(e) => setNewCustForm({ ...newCustForm, name: e.target.value })}
+                  placeholder="misal: Hendra Gunawan"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  No WhatsApp / HP *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={newCustForm.phone}
+                  onChange={(e) => setNewCustForm({ ...newCustForm, phone: e.target.value })}
+                  placeholder="081234567890"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Email (Opsional)
+                </label>
+                <input
+                  type="email"
+                  value={newCustForm.email}
+                  onChange={(e) => setNewCustForm({ ...newCustForm, email: e.target.value })}
+                  placeholder="hendra@example.com"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Alamat (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={newCustForm.address}
+                  onChange={(e) => setNewCustForm({ ...newCustForm, address: e.target.value })}
+                  placeholder="Alamat rumah / domisili pelanggan"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Catatan Tambahan (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={newCustForm.notes}
+                  onChange={(e) => setNewCustForm({ ...newCustForm, notes: e.target.value })}
+                  placeholder="misal: Langganan cuci sepatu, minta info promo"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                >
+                  Simpan Konsumen
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: EDIT KONSUMEN (KHUSUS OWNER / KEPALA CABANG) */}
+      {/* ======================================================== */}
+      {editingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-sky-100 dark:bg-sky-950/60 text-sky-600 rounded-xl">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                    Edit Data Konsumen
+                  </h3>
+                  <p className="text-[11px] text-sky-600 font-semibold">
+                    Khusus Wewenang Owner / Kepala Cabang
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingCustomer(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!editCustForm.name.trim() || !editCustForm.phone.trim()) {
+                  alert("Nama dan Nomor WhatsApp/HP wajib diisi!");
+                  return;
+                }
+                const cleanPhone = editCustForm.phone.trim().replace(/[^0-9]/g, "");
+                updateCustomer(editingCustomer.id, {
+                  name: editCustForm.name.trim(),
+                  phone: cleanPhone.startsWith("62") ? "0" + cleanPhone.slice(2) : cleanPhone,
+                  email: editCustForm.email.trim() || undefined,
+                  address: editCustForm.address.trim() || undefined,
+                  notes: editCustForm.notes.trim() || undefined,
+                });
+                setEditingCustomer(null);
+              }}
+              className="space-y-3"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Nama Konsumen *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCustForm.name}
+                  onChange={(e) => setEditCustForm({ ...editCustForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  No WhatsApp / HP *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={editCustForm.phone}
+                  onChange={(e) => setEditCustForm({ ...editCustForm, phone: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Email (Opsional)
+                </label>
+                <input
+                  type="email"
+                  value={editCustForm.email}
+                  onChange={(e) => setEditCustForm({ ...editCustForm, email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Alamat (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editCustForm.address}
+                  onChange={(e) => setEditCustForm({ ...editCustForm, address: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Catatan Khusus (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={editCustForm.notes}
+                  onChange={(e) => setEditCustForm({ ...editCustForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCustomer(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs shadow-md shadow-sky-600/20 transition cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

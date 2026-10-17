@@ -126,12 +126,18 @@ export interface Transaction {
   discount_amount: number;
   total_amount: number;
   paid_amount: number;
+  remaining_amount?: number; // Nominal yang belum terbayar: total_amount - paid_amount
+  dp_amount?: number; // Nominal DP yang disetorkan
   status: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
   payment_method: 'cash' | 'transfer' | 'qris';
   payment_stage: 'dp' | 'full';
   items: TransactionItem[];
   crm_attributed_log_id?: string;
-  created_at: string;
+  created_at: string; // Tanggal & waktu nota dibuat (default waktu saat ini)
+  estimated_completion_date?: string; // Tanggal & waktu selesai default terisi sesuai durasi layanan
+  discount_special_requested?: boolean; // Pengajuan diskon special oleh kasir
+  discount_special_note?: string; // Alasan/keterangan diskon special
+  discount_special_status?: 'none' | 'pending' | 'approved' | 'rejected'; // Status persetujuan owner
 }
 
 export interface CrmLog {
