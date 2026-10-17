@@ -84,9 +84,10 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
 
   const isSuperAdminRoute = pathname === "/super-admin";
   const isSuperAdminUser = currentUser.id === "user-super-admin" || currentUser.email === "superadmin@radartoko.id" || currentUser.email === "superadmin@rotari.id";
+  const isOwner = currentUser.role === "owner";
   const currentNavItems = (isSuperAdminRoute || isSuperAdminUser)
     ? superAdminNavItems
-    : currentUser.role === "owner" 
+    : isOwner 
     ? ownerNavItems 
     : cashierNavItems;
 
@@ -106,20 +107,21 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         onClose={() => setIsLoginModalOpen(false)} 
       />
 
-      {/* Mobile Drawer Overlay Backdrop */}
-      {mobileMenuOpen && (
+      {/* Mobile Drawer Overlay Backdrop - Hanya jika bukan owner */}
+      {!isOwner && mobileMenuOpen && (
         <div 
           onClick={() => setMobileMenuOpen(false)}
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
         />
       )}
 
-      {/* 1. Left Sidebar Navigation (Desktop & Mobile Drawer) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 lg:static flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 ${
-        mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0"
-      } ${
-        sidebarCollapsed ? "lg:w-20" : "lg:w-64"
-      }`}>
+      {/* 1. Left Sidebar Navigation (Desktop & Mobile Drawer) - Dihapus pada dashboard owner */}
+      {!isOwner && (
+        <aside className={`fixed inset-y-0 left-0 z-50 lg:static flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 ${
+          mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full lg:translate-x-0"
+        } ${
+          sidebarCollapsed ? "lg:w-20" : "lg:w-64"
+        }`}>
         
         {/* Brand Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100 dark:border-slate-800">
@@ -249,6 +251,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         </div>
 
       </aside>
+      )}
 
       {/* 2. Main Content Canvas with Header Bar */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -256,31 +259,86 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         {/* Top Header Bar */}
         <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 sm:px-6 flex items-center justify-between z-20">
           
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Mobile Hamburger Drawer Trigger */}
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              aria-label="Open Mobile Menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+          <div className="flex items-center space-x-2 sm:space-x-3 overflow-hidden">
+            {!isOwner && (
+              <>
+                {/* Mobile Hamburger Drawer Trigger */}
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  aria-label="Open Mobile Menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
 
-            {/* Desktop Sidebar Collapse Toggle */}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden lg:flex p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            >
-              <Layers className="w-4 h-4" />
-            </button>
+                {/* Desktop Sidebar Collapse Toggle */}
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:flex p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <Layers className="w-4 h-4" />
+                </button>
+              </>
+            )}
 
-            <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-500 truncate max-w-[140px] sm:max-w-xs">
-              <Building2 className="w-4 h-4 text-sky-600 flex-shrink-0" />
-              <strong className="text-slate-900 dark:text-slate-100 truncate">{tenant.business_name}</strong>
-            </div>
+            {/* Brand Logo & Outlet Info */}
+            <Link href="/" className="flex items-center space-x-2.5 flex-shrink-0">
+              <img 
+                src="/rotari-logo.png" 
+                alt="Radar Toko Logo" 
+                className="w-8 h-8 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" 
+              />
+              <div className="block">
+                <span className="font-black text-xs sm:text-sm tracking-tight text-slate-900 dark:text-slate-100 block leading-tight">
+                  RADAR TOKO
+                </span>
+                <span className="text-[10px] font-bold text-slate-500 truncate block max-w-[120px] sm:max-w-none">
+                  {tenant.business_name}
+                </span>
+              </div>
+            </Link>
+
+            {/* Top Navigation Tabs Khusus Owner (Karena Side Menu Dihapus) */}
+            {isOwner && (
+              <nav className="hidden lg:flex items-center space-x-1 ml-3 pl-3 border-l border-slate-200 dark:border-slate-800">
+                {ownerNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                        isActive
+                          ? "bg-sky-600 text-white shadow-sm shadow-sky-600/20"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+
+                <Link
+                  href="/pos"
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 ml-1.5 transition"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span>Kasir POS</span>
+                </Link>
+              </nav>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Ganti User Modal Button */}
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="hidden sm:inline-flex items-center text-[11px] font-extrabold text-sky-600 dark:text-sky-400 hover:underline px-1 py-1"
+            >
+              Ganti User
+            </button>
             
             {/* Trial Status Badge */}
             {tenant.subscription_status === 'active' ? (

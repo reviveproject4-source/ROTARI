@@ -53,6 +53,13 @@ export default function OwnerDashboard() {
   const grossProfit = totalRevenue - totalHPP;
   const grossMarginPercent = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : "0";
 
+  // Perhitungan Keuntungan Kotor Khusus Hasil Konversi CRM (Omset CRM - HPP Bahan)
+  const defaultMarginRate = totalRevenue > 0 ? (totalRevenue - totalHPP) / totalRevenue : 0.65;
+  const crmGrossProfit = Math.round(crmConvertedAmount * defaultMarginRate);
+  const crmGrossProfitMargin = crmConvertedAmount > 0
+    ? ((crmGrossProfit / crmConvertedAmount) * 100).toFixed(1)
+    : "0";
+
   // Perhitungan Persentase Pembayaran Cash vs Transfer
   const totalReceivedCombined = totalCashReceived + totalTransferReceived;
   const cashPercent = totalReceivedCombined > 0 ? Math.round((totalCashReceived / totalReceivedCombined) * 100) : 0;
@@ -500,40 +507,70 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* CRM Conversion Summary */}
+      {/* LAPORAN EFEKTIVITAS CRM & WA REMINDER (RINGKASAN EKSEKUTIF TANPA DAFTAR NAMA) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
             <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
               <MessageSquareText className="w-5 h-5 text-purple-600" />
-              Laporan Konversi CRM &amp; Reminder Terkirim
+              Laporan Kinerja CRM &amp; Retensi Pelanggan
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Statistik omset yang terkonversi langsung dari pengiriman WA reminder kasir.
+              Rekapitulasi pesan reminder WhatsApp, total omset yang terkonversi, dan keuntungan kotor yang dihasilkan.
             </p>
           </div>
           <Link
             href="/crm"
-            className="text-xs font-bold text-purple-600 hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-purple-600 hover:underline flex items-center gap-1 self-start sm:self-auto"
           >
-            Lihat Laporan CRM <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Buka Modul CRM Lengkap</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl border border-purple-100 dark:border-purple-950 bg-purple-50/40 dark:bg-purple-950/20">
-            <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 uppercase">Pesan WA Terkirim</span>
-            <p className="text-2xl font-black text-purple-900 dark:text-purple-100 mt-1">{totalWaSent} Pesan</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          {/* 1. Total WA Terkirim */}
+          <div className="p-5 rounded-2xl border border-purple-100 dark:border-purple-950 bg-gradient-to-br from-purple-50/50 to-indigo-50/30 dark:from-purple-950/20 dark:to-indigo-950/20 space-y-1">
+            <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 uppercase tracking-wider block">
+              1. Total WA Terkirim
+            </span>
+            <p className="text-2xl sm:text-3xl font-black text-purple-900 dark:text-purple-100">
+              {totalWaSent} <span className="text-sm font-semibold text-slate-500">Pesan</span>
+            </p>
+            <span className="text-[11px] text-slate-400 block pt-1">
+              Pesan reminder dormant, lost &amp; promo terkirim
+            </span>
           </div>
 
-          <div className="p-4 rounded-2xl border border-emerald-100 dark:border-emerald-950 bg-emerald-50/40 dark:bg-emerald-950/20">
-            <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 uppercase">Pelanggan Kembali Transaksi</span>
-            <p className="text-2xl font-black text-emerald-900 dark:text-emerald-100 mt-1">{crmConvertedCount} Konversi</p>
+          {/* 2. Total Omset yang Dihasilkan */}
+          <div className="p-5 rounded-2xl border border-sky-100 dark:border-sky-950 bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-950/20 dark:to-blue-950/20 space-y-1">
+            <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 uppercase tracking-wider block">
+              2. Total Omset Dihasilkan
+            </span>
+            <p className="text-2xl sm:text-3xl font-black text-sky-900 dark:text-sky-100">
+              Rp {crmConvertedAmount.toLocaleString("id-ID")}
+            </p>
+            <span className="text-[11px] text-slate-400 block pt-1">
+              Dari {crmConvertedCount} transaksi pelanggan yang kembali berkunjung
+            </span>
           </div>
 
-          <div className="p-4 rounded-2xl border border-sky-100 dark:border-sky-950 bg-sky-50/40 dark:bg-sky-950/20">
-            <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 uppercase">Total Omset Hasil CRM</span>
-            <p className="text-2xl font-black text-sky-900 dark:text-sky-100 mt-1">Rp {crmConvertedAmount.toLocaleString("id-ID")}</p>
+          {/* 3. Keuntungan Kotor yang Dihasilkan */}
+          <div className="p-5 rounded-2xl border border-emerald-100 dark:border-emerald-950 bg-gradient-to-br from-emerald-50/60 to-teal-50/40 dark:from-emerald-950/20 dark:to-teal-950/20 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">
+                3. Keuntungan Kotor Dihasilkan
+              </span>
+              <span className="text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full">
+                Margin {crmGrossProfitMargin}%
+              </span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-300">
+              Rp {crmGrossProfit.toLocaleString("id-ID")}
+            </p>
+            <span className="text-[11px] text-slate-400 block pt-1">
+              Omset CRM dikurangi modal/HPP harga beli bahan
+            </span>
           </div>
         </div>
       </div>
