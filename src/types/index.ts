@@ -37,6 +37,8 @@ export interface Tenant {
     dormant_template?: string;      // Template gaya bahasa owner untuk pelanggan dormant
     lost_template?: string;         // Template gaya bahasa owner untuk pelanggan lost
     promo_template?: string;        // Template gaya bahasa owner untuk promo kasir
+    invoice_template?: string;      // Template nota digital resmi WhatsApp
+    ready_pickup_template?: string; // Template notifikasi barang siap diambil / pelunasan
   };
 }
 

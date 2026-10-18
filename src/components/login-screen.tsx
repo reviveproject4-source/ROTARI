@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { KeyRound, AlertCircle, User, Lock, ArrowRight, Sparkles, Building2, UserCheck } from "lucide-react";
 
@@ -55,9 +56,11 @@ export function LoginScreen() {
         {/* Radar Toko Official Logo & Header */}
         <div className="text-center space-y-3">
           <div className="relative inline-block">
-            <img 
+            <Image 
               src="/rotari-logo.png" 
               alt="Radar Toko Logo" 
+              width={80}
+              height={80}
               className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full object-contain bg-white p-1 shadow-xl shadow-emerald-500/20 ring-4 ring-emerald-500/10"
             />
           </div>

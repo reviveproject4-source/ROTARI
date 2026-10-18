@@ -18,6 +18,7 @@ import {
   Utensils 
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function DemoRequestPage() {
   const { registerDemoTenant, tenant } = useTenant();
@@ -63,7 +64,14 @@ export default function DemoRequestPage() {
         </Link>
 
         {tenant.logo_url && (
-          <img src={tenant.logo_url} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
+          <Image
+            src={tenant.logo_url}
+            alt="Logo"
+            width={32}
+            height={32}
+            unoptimized
+            className="w-8 h-8 rounded-lg object-cover"
+          />
         )}
       </div>
 

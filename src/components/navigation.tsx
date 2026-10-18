@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTenant } from "@/lib/tenant-context";
 import { useTheme } from "next-themes";
@@ -65,9 +66,11 @@ export function Navigation() {
           
           {/* Outlet Identity */}
           <div className="flex items-center space-x-3">
-            <img 
+            <Image 
               src="/rotari-logo.png" 
               alt="Radar Toko Logo" 
+              width={36}
+              height={36}
               className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700" 
             />
             <div>

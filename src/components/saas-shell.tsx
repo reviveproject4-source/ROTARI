@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useTenant } from "@/lib/tenant-context";
 import { useTheme } from "next-themes";
@@ -130,9 +131,11 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
         {/* Brand Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <img 
+            <Image 
               src="/rotari-logo.png" 
               alt="Radar Toko Logo" 
+              width={36}
+              height={36}
               className="w-9 h-9 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" 
             />
             
@@ -287,9 +290,11 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
 
             {/* Brand Logo & Outlet Info */}
             <Link href="/" className="flex items-center space-x-2.5 flex-shrink-0">
-              <img 
+              <Image 
                 src="/rotari-logo.png" 
                 alt="Radar Toko Logo" 
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded-full object-contain bg-white p-0.5 shadow-sm border border-slate-200 dark:border-slate-700 flex-shrink-0" 
               />
               <div className="block">

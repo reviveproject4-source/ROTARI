@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import { useTenant } from "@/lib/tenant-context";
 import { openWhatsAppChat } from "@/lib/whatsapp";
+import { uploadPhotoToSupabaseStorage } from "@/lib/supabase-sync";
 import { ProductService, TransactionItem } from "@/types";
 import {
   ShoppingCart,
@@ -21,7 +23,9 @@ import {
   Sparkles,
   Trash2,
   Tag,
-  ArrowRight
+  ArrowRight,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 interface PosInvoiceSectionProps {
@@ -51,6 +55,7 @@ export function PosInvoiceSection({ showTitle = true, className = "" }: PosInvoi
 
   // Photo Upload State (Kamera / Galeri HP)
   const [photoUrl, setPhotoUrl] = useState<string>("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
 
   // Helper local ISO string
   const getLocalIsoString = (d: Date = new Date()) => {
@@ -124,6 +129,7 @@ export function PosInvoiceSection({ showTitle = true, className = "" }: PosInvoi
 
   const totalAmount = Math.max(0, subtotal - calculatedDiscount);
   const dpValue = dpAmountManual ? Number(dpAmountManual) : 0;
+  const isDpExceeded = dpValue > totalAmount;
   const isDpActive = dpValue > 0 && dpValue < totalAmount;
   const paidAmount = isDpActive ? dpValue : totalAmount;
   const sisaPembayaran = Math.max(0, totalAmount - paidAmount);
@@ -177,14 +183,28 @@ export function PosInvoiceSection({ showTitle = true, className = "" }: PosInvoi
     setCart((prev) => prev.filter((i) => i.item_id !== itemId));
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // 1. Tampilkan local DataURL preview instan
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // 2. Upload ke Supabase Storage (transaction-photos) dengan aman
+      try {
+        setIsUploadingPhoto(true);
+        const uploadRes = await uploadPhotoToSupabaseStorage(file, file.name || "nota_photo.jpg");
+        if (uploadRes.success && uploadRes.publicUrl) {
+          setPhotoUrl(uploadRes.publicUrl);
+        }
+      } catch (err) {
+        console.warn("Upload fallback ke DataURL:", err);
+      } finally {
+        setIsUploadingPhoto(false);
+      }
     }
   };
 
@@ -201,7 +221,7 @@ export function PosInvoiceSection({ showTitle = true, className = "" }: PosInvoi
   };
 
   const handleCheckout = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isDpExceeded) return;
 
     const newTx = addTransaction({
       customer_id: selectedCustomerId || undefined,
@@ -244,20 +264,44 @@ export function PosInvoiceSection({ showTitle = true, className = "" }: PosInvoi
 
   const handleSendWaNota = (tx: any) => {
     const sisa = tx.total_amount - tx.paid_amount;
-    const text = `*NOTA DIGITAL RESMI - ${tenant.business_name}*
+    const itemsText = tx.items.map((i: any) => `• ${i.name} x${i.quantity} = Rp ${(i.unit_price * i.quantity).toLocaleString("id-ID")}`).join("\n");
+    const estimasiText = tx.estimated_completion_date ? `*Estimasi Selesai:* ${new Date(tx.estimated_completion_date).toLocaleString("id-ID")}\n` : "";
+    const catatanText = tx.item_notes ? `*Catatan Pengerjaan:* ${tx.item_notes}\n` : "";
+    const sisaText = sisa > 0 ? `*NOMINAL BELUM TERBAYAR (SISA):* Rp ${sisa.toLocaleString("id-ID")}` : "*STATUS:* LUNAS";
+    const diskonInfo = `${tx.discount_amount.toLocaleString("id-ID")} (${tx.discount_type === 'percent' ? `${tx.discount_value}%` : 'Nominal Rp'})${tx.discount_special_requested ? ` [Diskon Special: ${tx.discount_special_note || 'ACC'}]` : ''}`;
+
+    let text = tenant.reminder_rules?.invoice_template || "";
+
+    if (text) {
+      text = text
+        .replace(/{toko}/g, tenant.business_name || "Toko Kami")
+        .replace(/{nota}/g, tx.invoice_number || "")
+        .replace(/{tgl}/g, new Date(tx.created_at).toLocaleString("id-ID"))
+        .replace(/{estimasi}/g, estimasiText)
+        .replace(/{nama}/g, tx.customer_name || "Pelanggan Umum")
+        .replace(/{rincian}/g, itemsText)
+        .replace(/{catatan}/g, catatanText)
+        .replace(/{subtotal}/g, tx.subtotal.toLocaleString("id-ID"))
+        .replace(/{diskon}/g, diskonInfo)
+        .replace(/{total}/g, tx.total_amount.toLocaleString("id-ID"))
+        .replace(/{dibayar}/g, `${tx.paid_amount.toLocaleString("id-ID")} (${tx.payment_stage.toUpperCase()})`)
+        .replace(/{sisa}/g, sisaText)
+        .replace(/{alamat}/g, tenant.address || "-")
+        .replace(/{syarat}/g, tenant.terms_and_conditions || "-");
+    } else {
+      text = `*NOTA DIGITAL RESMI - ${tenant.business_name}*
 Invoice: ${tx.invoice_number}
 Tanggal Transaksi: ${new Date(tx.created_at).toLocaleString("id-ID")}
-${tx.estimated_completion_date ? `*Estimasi Selesai:* ${new Date(tx.estimated_completion_date).toLocaleString("id-ID")}\n` : ""}Pelanggan: ${tx.customer_name}
+${estimasiText}Pelanggan: ${tx.customer_name}
 
 *Rincian Item / Layanan:*
-${tx.items.map((i: any) => `• ${i.name} x${i.quantity} = Rp ${(i.unit_price * i.quantity).toLocaleString("id-ID")}`).join("\n")}
+${itemsText}
 
-${tx.item_notes ? `*Catatan Pengerjaan:* ${tx.item_notes}\n` : ""}
-Subtotal: Rp ${tx.subtotal.toLocaleString("id-ID")}
-Diskon: Rp ${tx.discount_amount.toLocaleString("id-ID")} (${tx.discount_type === 'percent' ? `${tx.discount_value}%` : 'Nominal Rp'})${tx.discount_special_requested ? ` [Diskon Special: ${tx.discount_special_note || 'ACC'}]` : ''}
+${catatanText}Subtotal: Rp ${tx.subtotal.toLocaleString("id-ID")}
+Diskon: Rp ${diskonInfo}
 Total Tagihan: Rp ${tx.total_amount.toLocaleString("id-ID")}
 Dibayar (${tx.payment_stage.toUpperCase()}): Rp ${tx.paid_amount.toLocaleString("id-ID")}
-${sisa > 0 ? `*NOMINAL BELUM TERBAYAR (SISA):* Rp ${sisa.toLocaleString("id-ID")}\n` : "*STATUS:* LUNAS\n"}
+${sisaText}
 ----------------------------
 *Alamat Outlet:*
 ${tenant.address}
@@ -267,6 +311,7 @@ ${tenant.terms_and_conditions}
 
 Terima kasih atas kunjungan Anda!
 _Radar Toko POS System_`;
+    }
 
     const phone = tx.customer_phone || selectedCustomer?.phone || "6281234567890";
     setWaOpenedStatus(true);
@@ -641,9 +686,15 @@ _Radar Toko POS System_`;
                 </div>
 
                 {/* D. Input DP & Nominal Belum Terbayar (Sisa Pelunasan) */}
-                <div className="grid grid-cols-2 gap-2.5 bg-amber-50/60 dark:bg-amber-950/20 p-3 rounded-2xl border border-amber-200/60 dark:border-amber-900/60">
+                <div className={`grid grid-cols-2 gap-2.5 p-3 rounded-2xl border transition ${
+                  isDpExceeded
+                    ? "bg-rose-50/70 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800"
+                    : "bg-amber-50/60 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/60"
+                }`}>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-amber-900 dark:text-amber-300 mb-1">
+                    <label className={`block text-[10px] font-black uppercase mb-1 ${
+                      isDpExceeded ? "text-rose-900 dark:text-rose-300" : "text-amber-900 dark:text-amber-300"
+                    }`}>
                       Input DP (Uang Muka)
                     </label>
                     <input
@@ -652,9 +703,20 @@ _Radar Toko POS System_`;
                       value={dpAmountManual}
                       onChange={(e) => setDpAmountManual(e.target.value ? Number(e.target.value) : "")}
                       placeholder="0 (kosongkan jika lunas)"
-                      className="w-full px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 text-xs font-black text-amber-700"
+                      className={`w-full px-3 py-1.5 rounded-xl border text-xs font-black transition ${
+                        isDpExceeded
+                          ? "border-rose-400 bg-white dark:bg-slate-900 text-rose-600 focus:ring-2 focus:ring-rose-500"
+                          : "border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-900 text-amber-700"
+                      }`}
                     />
-                    <span className="text-[9px] text-slate-400 block mt-0.5">Kosongkan jika bayar lunas</span>
+                    {isDpExceeded ? (
+                      <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold block mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                        DP melebihi total tagihan!
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-slate-400 block mt-0.5">Kosongkan jika bayar lunas</span>
+                    )}
                   </div>
 
                   <div>
@@ -692,10 +754,23 @@ _Radar Toko POS System_`;
 
                   {photoUrl ? (
                     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-900 p-2.5 flex items-center gap-3">
-                      <img src={photoUrl} alt="Lampiran Foto" className="w-14 h-14 rounded-xl object-cover border border-white/20 flex-shrink-0" />
+                      <Image
+                        src={photoUrl}
+                        alt="Lampiran Foto"
+                        width={56}
+                        height={56}
+                        unoptimized
+                        className="w-14 h-14 rounded-xl object-cover border border-white/20 flex-shrink-0"
+                      />
                       <div className="flex-1 text-xs">
                         <span className="font-bold text-emerald-400 block">✓ Foto Berhasil Disematkan</span>
-                        <span className="text-[10px] text-slate-300 block">Tersambung ke cetak nota &amp; WA digital</span>
+                        {isUploadingPhoto ? (
+                          <span className="text-[10px] text-amber-300 flex items-center gap-1 mt-0.5">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Mengunggah ke Cloud Storage...
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-300 block">Tersambung ke cetak nota &amp; WA digital</span>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -741,11 +816,20 @@ _Radar Toko POS System_`;
                   )}
                 </div>
 
+                {/* Warning Alert Banner jika DP Melebihi Total Tagihan */}
+                {isDpExceeded && (
+                  <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-xs font-bold text-rose-600 dark:text-rose-300 flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                    <span>Uang Muka DP (Rp {dpValue.toLocaleString("id-ID")}) melebihi Total Tagihan (Rp {totalAmount.toLocaleString("id-ID")}). Harap sesuaikan nominal DP.</span>
+                  </div>
+                )}
+
                 {/* Tombol Buat & Cetak Nota */}
                 <button
                   type="button"
+                  disabled={cart.length === 0 || isDpExceeded}
                   onClick={handleCheckout}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-600/20 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm shadow-lg shadow-emerald-600/20 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Receipt className="w-4 h-4" />
                   <span>Proses Transaksi &amp; Cetak Nota</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTenant } from "@/lib/tenant-context";
 import { useRouter } from "next/navigation";
 import { KeyRound, X, AlertCircle, User, Lock, Sparkles, Building2, UserCheck, ShieldCheck } from "lucide-react";
@@ -64,9 +65,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {/* Modal Header */}
         <div className="text-center space-y-1.5 pt-1">
-          <img 
+          <Image 
             src="/rotari-logo.png" 
             alt="Radar Toko Logo" 
+            width={48}
+            height={48}
             className="w-12 h-12 mx-auto rounded-full object-contain bg-white p-1 shadow-md border border-slate-200 dark:border-slate-800" 
           />
           <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">

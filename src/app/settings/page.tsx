@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTenant } from "@/lib/tenant-context";
 import { useTheme } from "next-themes";
 import { BusinessType } from "@/types";
@@ -56,6 +57,14 @@ export default function SettingsPage() {
     tenant.reminder_rules?.promo_template ||
     "Halo Kak {nama}! Ada kabar gembira dari {toko}: {promo}. Jangan sampai ketinggalan ya Kak!"
   );
+  const [invoiceTemplate, setInvoiceTemplate] = useState<string>(
+    tenant.reminder_rules?.invoice_template ||
+    "*NOTA DIGITAL RESMI - {toko}*\nInvoice: {nota}\nTanggal: {tgl}\n{estimasi}Pelanggan: {nama}\n\n*Rincian Item / Layanan:*\n{rincian}\n\n{catatan}Subtotal: Rp {subtotal}\nDiskon: Rp {diskon}\nTotal Tagihan: Rp {total}\nDibayar: Rp {dibayar}\n{sisa}\n----------------------------\n*Alamat Outlet:*\n{alamat}\n\n*Syarat & Ketentuan:*\n{syarat}\n\nTerima kasih atas kunjungan Anda!\n_Radar Toko POS System_"
+  );
+  const [readyPickupTemplate, setReadyPickupTemplate] = useState<string>(
+    tenant.reminder_rules?.ready_pickup_template ||
+    "Halo Kak {nama}, pengerjaan barang kesayangan Anda ({barang}) sudah *SIAP DIAMBIL* di {toko}.\n\n*Alamat Outlet:* {alamat}\n{sisa}\nKami tunggu kedatangannya ya Kak!"
+  );
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -88,6 +97,8 @@ export default function SettingsPage() {
         dormant_template: dormantTemplate,
         lost_template: lostTemplate,
         promo_template: promoTemplate,
+        invoice_template: invoiceTemplate,
+        ready_pickup_template: readyPickupTemplate,
       },
     });
 
@@ -374,6 +385,52 @@ export default function SettingsPage() {
             />
           </div>
 
+          {/* Form Template 4: Nota Digital Resmi Transaksi Baru */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Template Pesan 4: Nota Digital Transaksi Baru (WhatsApp) *
+              </label>
+              <span className="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-950 px-2 py-0.5 rounded">
+                Otomatis saat Transaksi POS
+              </span>
+            </div>
+            <textarea
+              rows={6}
+              value={invoiceTemplate}
+              onChange={(e) => setInvoiceTemplate(e.target.value)}
+              required
+              className="w-full font-mono text-[11px] px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed focus:ring-2 focus:ring-emerald-500"
+              placeholder="Format nota WhatsApp resmi..."
+            />
+            <p className="text-[10px] text-slate-400">
+              Gunakan placeholder: &#123;toko&#125;, &#123;nota&#125;, &#123;tgl&#125;, &#123;estimasi&#125;, &#123;nama&#125;, &#123;rincian&#125;, &#123;catatan&#125;, &#123;subtotal&#125;, &#123;diskon&#125;, &#123;total&#125;, &#123;dibayar&#125;, &#123;sisa&#125;, &#123;alamat&#125;, &#123;syarat&#125;.
+            </p>
+          </div>
+
+          {/* Form Template 5: Notifikasi Barang Siap Diambil / Pelunasan */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Template Pesan 5: Notifikasi Barang Siap Diambil / Pelunasan *
+              </label>
+              <span className="text-[10px] font-bold text-purple-600 bg-purple-50 dark:bg-purple-950 px-2 py-0.5 rounded">
+                Pengerjaan Selesai
+              </span>
+            </div>
+            <textarea
+              rows={3}
+              value={readyPickupTemplate}
+              onChange={(e) => setReadyPickupTemplate(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs leading-relaxed focus:ring-2 focus:ring-emerald-500"
+              placeholder="Halo Kak {nama}, pengerjaan barang kesayangan Anda ({barang}) sudah siap diambil..."
+            />
+            <p className="text-[10px] text-slate-400">
+              Gunakan placeholder: &#123;nama&#125;, &#123;barang&#125;, &#123;toko&#125;, &#123;alamat&#125;, &#123;sisa&#125;.
+            </p>
+          </div>
+
           {/* Live Preview Box WhatsApp */}
           <div className="p-4 rounded-2xl bg-emerald-950/10 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/80 space-y-2">
             <div className="flex items-center space-x-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
@@ -437,9 +494,12 @@ export default function SettingsPage() {
               </label>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 {logoUrl ? (
-                  <img
+                  <Image
                     src={logoUrl}
                     alt="Logo Nota Toko"
+                    width={80}
+                    height={80}
+                    unoptimized
                     className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-700 shadow-sm"
                   />
                 ) : (

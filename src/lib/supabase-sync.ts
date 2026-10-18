@@ -274,3 +274,35 @@ export async function persistProspectLeadToSupabase(lead: ProspectLead): Promise
     return { success: false, error: err };
   }
 }
+
+/**
+ * Upload foto nota atau kondisi barang ke Supabase Storage Bucket.
+ * Fallback aman: jika storage bucket belum aktif atau koneksi offline,
+ * fungsi mengembalikan success: false agar sistem memakai local preview DataURL.
+ */
+export async function uploadPhotoToSupabaseStorage(
+  file: File | Blob,
+  fileName: string,
+  bucket = "transaction-photos"
+): Promise<{ success: boolean; publicUrl?: string; error?: any }> {
+  try {
+    const cleanName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const filePath = `uploads/${Date.now()}_${cleanName}`;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+
+    if (uploadError) {
+      console.warn("Supabase Storage Upload Warning (using local/fallback):", uploadError);
+      return { success: false, error: uploadError };
+    }
+
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return { success: true, publicUrl: publicUrlData.publicUrl };
+  } catch (err) {
+    console.warn("Supabase Storage Exception:", err);
+    return { success: false, error: err };
+  }
+}
+

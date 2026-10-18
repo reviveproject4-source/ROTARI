@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { useTenant, getCustomerChurnStatus, formatReminderMessage } from "@/lib/tenant-context";
 import { openWhatsAppChat } from "@/lib/whatsapp";
 import { 
@@ -553,9 +554,12 @@ export default function CashierCrmPage() {
             </label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {promoPhotoPreview ? (
-                <img
+                <Image
                   src={promoPhotoPreview}
                   alt="Promo Attachment"
+                  width={96}
+                  height={96}
+                  unoptimized
                   className="w-24 h-24 rounded-2xl object-cover border-2 border-indigo-400 shadow-sm"
                 />
               ) : (

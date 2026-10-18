@@ -31,6 +31,8 @@ export const initialTenant: Tenant = {
     dormant_template: "Halo Kak {nama}, kami rindu kunjungan Anda di {toko}! Khusus pekan ini, nikmati penawaran spesial kangen pelanggan setia dari kami. Balas pesan ini untuk info promonya ya Kak!",
     lost_template: "Halo Kak {nama}! Sudah lama nih tidak berjumpa di {toko}. Yuk mampir lagi, ada voucher diskon spesial menanti Kakak lho!",
     promo_template: "Halo Kak {nama}! Ada promo spesial hari ini di {toko}: {promo}. Yuk mampir hari ini!",
+    invoice_template: "*NOTA DIGITAL RESMI - {toko}*\nInvoice: {nota}\nTanggal: {tgl}\n{estimasi}Pelanggan: {nama}\n\n*Rincian Item / Layanan:*\n{rincian}\n\n{catatan}Subtotal: Rp {subtotal}\nDiskon: Rp {diskon}\nTotal Tagihan: Rp {total}\nDibayar: Rp {dibayar}\n{sisa}\n----------------------------\n*Alamat Outlet:*\n{alamat}\n\n*Syarat & Ketentuan:*\n{syarat}\n\nTerima kasih atas kunjungan Anda!\n_Radar Toko POS System_",
+    ready_pickup_template: "Halo Kak {nama}, pengerjaan barang kesayangan Anda ({barang}) sudah *SIAP DIAMBIL* di {toko}.\n\n*Alamat Outlet:* {alamat}\n{sisa}\nKami tunggu kedatangannya ya Kak!",
   },
 };
 
