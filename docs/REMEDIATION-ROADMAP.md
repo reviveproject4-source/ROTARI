@@ -175,3 +175,10 @@ Supabase is intentionally unavailable for this work. Therefore:
 - No application source code was changed in this follow-up because the trusted Auth/profile contract and persistence schema are not established.
 - No Supabase project was opened, no SQL was run, and no migrations were applied.
 - No claim of P0/P1/P2 completion is made.
+
+## Source remediation update (2026-11-03)
+
+- P0 containment: browser PIN/alias login now fails closed; browser session identity restoration is removed; the Super Admin static PIN/session flag cannot authorize access; browser-only tenant signup no longer creates accounts; the fixed owner-to-cashier shortcut is removed; role mutation is removed from the tenant context. Login, self-service trial activation, and Super Admin access are intentionally unavailable until trusted server-side Auth/profile/tenant authorization is implemented.
+- P1 partial: active tenant selection is no longer restored from sessionStorage. Customer, product/service, and expense deletions now filter by both record ID and active tenant ID in local state and Supabase requests. These client-supplied filters are defense in depth only; browser registries and tenant IDs remain untrusted, and effective RLS is not verified. P1 is NOT COMPLETE.
+- P2 partial: user upserts no longer write PINs; browser session persistence strips PIN fields; local PIN updates are disabled; seeded demo PINs are blanked; hard-coded Supabase project fallback is removed in favor of a non-routable placeholder when environment configuration is missing. Other persistence paths still need error handling, trusted ownership checks, and transactional consistency.
+- No Supabase project was opened, no SQL/migration was run or modified, and no database-backed RLS test was executed. CI verification is pending. Do not deploy this containment branch as a customer-ready release until authentication is restored securely.
