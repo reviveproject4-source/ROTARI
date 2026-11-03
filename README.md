@@ -298,4 +298,4 @@ My approach is simple:
 
 ## License
 
-The project owner has selected the **MIT License** for ROTARI. The standard root `LICENSE` file is pending confirmation of the copyright holder notice and must be committed before the project is announced as an officially licensed open-source release. See [Open-Source Readiness](docs/OPEN-SOURCE-READINESS.md) for current release gates.
+ROTARI is licensed under the **MIT License**. See the root [LICENSE](LICENSE) file. The copyright notice is © 2026 Minara Technologi Indonesia. See [Open-Source Readiness](docs/OPEN-SOURCE-READINESS.md) for remaining release gates.
