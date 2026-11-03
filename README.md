@@ -294,3 +294,8 @@ I am particularly interested in helping **small businesses and entrepreneurs** t
 My approach is simple:
 
 > **Understand the business first. Then design the system.**
+
+
+## License
+
+The project owner has selected the **MIT License** for ROTARI. The standard root `LICENSE` file is pending confirmation of the copyright holder notice and must be committed before the project is announced as an officially licensed open-source release. See [Open-Source Readiness](docs/OPEN-SOURCE-READINESS.md) for current release gates.
