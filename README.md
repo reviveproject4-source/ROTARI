@@ -145,9 +145,9 @@ Business Data
 
 Business entities carry a `tenant_id`, allowing data to be associated with the correct business.
 
-The database uses **PostgreSQL with Supabase Row Level Security (RLS)** to enforce tenant-aware access policies.
+The intended database architecture uses **PostgreSQL with Supabase Row Level Security (RLS)** for tenant-aware access control. However, the current repository audit has identified unresolved authentication and RLS findings, and the applied policies in the live database have not yet been verified.
 
-The project therefore treats data isolation as part of the system architecture, not only as a frontend concern.
+**Do not assume tenant isolation is production-safe at this stage.** See [Open-Source Readiness](docs/OPEN-SOURCE-READINESS.md) and the [Security Audit](docs/SECURITY-AUDIT-2026-11.md) for current limitations and release gates.
 
 ---
 
@@ -294,3 +294,8 @@ I am particularly interested in helping **small businesses and entrepreneurs** t
 My approach is simple:
 
 > **Understand the business first. Then design the system.**
+
+
+## License
+
+ROTARI is licensed under the **MIT License**. See the root [LICENSE](LICENSE) file. The copyright notice is © 2026 Minara Technologi Indonesia. See [Open-Source Readiness](docs/OPEN-SOURCE-READINESS.md) for remaining release gates.
