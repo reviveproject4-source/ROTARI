@@ -25,7 +25,7 @@ import { useState, useEffect } from "react";
 
 export function Navigation() {
   const pathname = usePathname();
-  const { tenant, currentUser, setCurrentUserRole, updateTenant } = useTenant();
+  const { tenant, currentUser, updateTenant } = useTenant();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

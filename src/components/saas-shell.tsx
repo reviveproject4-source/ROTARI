@@ -39,7 +39,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     currentUser, 
     isAuthenticated,
     logout,
-    loginWithCredentials,
     updateTenant, 
     transactions, 
     daysRemainingInTrial, 
@@ -102,11 +101,13 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     updateTenant({ theme_preference: newTheme });
   };
 
+  if (!isAuthenticated && pathname !== "/demo-request") {
+    return <LoginScreen />;
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 relative">
       
-      {!isAuthenticated && pathname !== '/demo-request' && <LoginScreen />}
-
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
@@ -171,13 +172,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
               <div className="flex items-center space-x-2 text-[10px] font-extrabold">
-                <button
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className="text-sky-600 dark:text-sky-400 hover:underline"
-                >
-                  Ganti User
-                </button>
-                <span className="text-slate-300 dark:text-slate-700">•</span>
                 <button
                   onClick={() => logout()}
                   className="text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
@@ -351,7 +345,7 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
                   {currentUser.name}
                 </span>
                 <span className="block text-[9px] font-semibold opacity-80 uppercase text-sky-700 dark:text-sky-300">
-                  {currentUser.role === 'owner' ? 'Owner' : 'Kasir'} • Ganti User
+                  {currentUser.role === 'owner' ? 'Owner' : 'Kasir'}
                 </span>
               </div>
               <span className="xs:hidden text-[10px] font-black uppercase">
@@ -359,28 +353,6 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
               </span>
             </button>
 
-            {/* Quick 1-Click Switch Button: Masuk Kasir jika sedang Owner */}
-            {currentUser.role === 'owner' ? (
-              <button
-                onClick={() => {
-                  loginWithCredentials("siti@rotari.id", "1122");
-                  router.push("/pos");
-                }}
-                title="Beralih langsung ke mode Kasir (Siti)"
-                className="hidden md:inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black shadow-sm transition active:scale-95"
-              >
-                <span>Masuk Kasir 👩</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                title="Beralih ke mode Owner (perlu PIN 123456)"
-                className="hidden md:inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black shadow-sm transition active:scale-95"
-              >
-                <span>Mode Owner 👑</span>
-              </button>
-            )}
-            
             {/* Trial Status Badge */}
             {tenant.subscription_status === 'active' ? (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">

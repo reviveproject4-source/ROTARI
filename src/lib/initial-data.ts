@@ -42,14 +42,14 @@ export const SUPER_ADMIN_USER: User = {
   name: "Super Admin Radar Toko",
   email: "superadmin@radartoko.id",
   role: "superadmin",
-  pin_code: "999999",
+  pin_code: "",
   is_active: true,
 };
 
 export const initialUsers: User[] = [
-  { id: "user-owner", tenant_id: "tenant-001", name: "Budi Owner", email: "owner@rotari.id", role: "owner", pin_code: "123456", is_active: true },
-  { id: "user-cashier-1", tenant_id: "tenant-001", name: "Siti Kasir", email: "siti@rotari.id", role: "cashier", pin_code: "1122", is_active: true },
-  { id: "user-cashier-2", tenant_id: "tenant-001", name: "Agus Kasir", email: "agus@rotari.id", role: "cashier", pin_code: "3344", is_active: true },
+  { id: "user-owner", tenant_id: "tenant-001", name: "Budi Owner", email: "owner@rotari.id", role: "owner", pin_code: "", is_active: true },
+  { id: "user-cashier-1", tenant_id: "tenant-001", name: "Siti Kasir", email: "siti@rotari.id", role: "cashier", pin_code: "", is_active: true },
+  { id: "user-cashier-2", tenant_id: "tenant-001", name: "Agus Kasir", email: "agus@rotari.id", role: "cashier", pin_code: "", is_active: true },
 ];
 
 export const initialProductsServices: ProductService[] = [

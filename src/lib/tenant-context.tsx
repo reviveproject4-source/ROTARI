@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, Role, WorkStatus, PromoInstruction, ProspectLead, BusinessType } from "@/types";
+import { Tenant, User, ProductService, OperationalExpense, Customer, Transaction, CrmLog, WorkStatus, PromoInstruction, ProspectLead } from "@/types";
 import { 
   initialTenant, 
   initialUsers, 
@@ -12,7 +12,6 @@ import {
   initialCrmLogs, 
   initialPromoInstructions, 
   initialProspectLeads,
-  SUPER_ADMIN_USER
 } from "./initial-data";
 import { supabase } from "./supabase";
 import {
@@ -60,10 +59,7 @@ interface TenantContextType {
   deleteProspectLead: (id: string) => void;
 
   updateTenant: (updated: Partial<Tenant>) => void;
-  setCurrentUserRole: (role: Role) => void;
-  setCurrentUserWithPin: (userId: string, pin: string) => boolean;
   loginWithCredentials: (identifier: string, pin: string) => { success: boolean; user?: User };
-  registerDemoTenant: (data: { name: string; email: string; phone: string; businessName: string; businessType?: BusinessType; pinCode?: string }) => User;
   updateUserPin: (userId: string, newPin: string) => void;
   toggleAttendance: (userId: string) => void;
   addUser: (user: Omit<User, "id" | "tenant_id" | "is_active">) => void;
@@ -174,12 +170,9 @@ function getStorageItemWithMerge<T extends { id: string }>(key: string, initialD
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Multi-Tenant Registries (Memory & SessionStorage)
   const [tenants, setTenants] = useState<Tenant[]>(() => getStorageItemWithMerge("rotari_tenants_registry_v2", [initialTenant]));
-  const [activeTenantId, setActiveTenantId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("rotari_active_tenant_id") || "tenant-001";
-    }
-    return "tenant-001";
-  });
+  // Tenant selection is not restored from browser storage. Until a trusted
+  // server-side membership resolver exists, use only the local demo tenant.
+  const [activeTenantId, setActiveTenantId] = useState<string>(initialTenant.id);
 
   const [users, setUsers] = useState<User[]>(() => getStorageItemWithMerge("rotari_users_registry_v2", initialUsers));
   const [currentUser, setCurrentUser] = useState<User>(() => initialUsers[0]);
@@ -194,77 +187,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [allPromoInstructions, setAllPromoInstructions] = useState<PromoInstruction[]>(() => getStorageItemWithMerge("rotari_promo_instructions_registry_v2", initialPromoInstructions));
   const [prospectLeads, setProspectLeads] = useState<ProspectLead[]>(() => getStorageItemWithMerge("rotari_prospect_leads_registry_v2", initialProspectLeads));
 
-  // Helper: Resolve User Profile & Tenant Identity from Supabase Auth Session
-  const resolveTenantUserFromSession = (sessionUser: any): { user: User | null; error?: string } => {
-    if (!sessionUser) return { user: null, error: "No active Auth session." };
-
-    const foundUser = users.find(
-      (u) => u.id === sessionUser.id || (u.email && u.email.toLowerCase() === sessionUser.email?.toLowerCase())
-    );
-
-    if (!foundUser) {
-      return { user: null, error: "Akun belum terdaftar di Radar Toko." };
-    }
-
-    if (!foundUser.tenant_id) {
-      return { user: null, error: "User belum terikat dengan Tenant valid." };
-    }
-
-    const foundTenant = tenants.find((t) => t.id === foundUser.tenant_id);
-    if (!foundTenant) {
-      return { user: null, error: "Tenant tidak ditemukan." };
-    }
-
-    return { user: foundUser };
-  };
-
-  // 1. Restore Active Session on Mount & Listen to Auth State Changes
+  // Authentication is intentionally fail-closed. The previous resolver
+  // trusted browser-held user and tenant registries, which are user-editable.
+  // Do not establish an application identity until a trusted server-side
+  // Auth UID -> profile -> tenant membership resolver exists.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const { user, error } = resolveTenantUserFromSession(session.user);
-        if (user) {
-          setCurrentUser(user);
-          setActiveTenantId(user.tenant_id);
-          setIsAuthenticated(true);
-        } else {
-          console.warn("Access Denied on Session Restore:", error);
-          setIsAuthenticated(false);
-        }
-      }
-    }).catch(() => {});
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        const { user, error } = resolveTenantUserFromSession(session.user);
-        if (user) {
-          setCurrentUser(user);
-          setActiveTenantId(user.tenant_id);
-          setIsAuthenticated(true);
-        } else {
-          console.warn("Access Denied on Auth State Change:", error);
-          setIsAuthenticated(false);
-        }
-      } else if (event === "SIGNED_OUT") {
-        setCurrentUser(initialUsers[0]);
-        setActiveTenantId("tenant-001");
-        setIsAuthenticated(false);
-      }
-    });
-
+    setIsAuthenticated(false);
     if (typeof window !== "undefined") {
-      const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
-      if (savedUserId && savedUserId === SUPER_ADMIN_USER.id) {
-        setCurrentUser(SUPER_ADMIN_USER);
-        setIsAuthenticated(true);
-      }
+      sessionStorage.removeItem("rotari_auth_user_id");
+      sessionStorage.removeItem("rotari_active_tenant_id");
+      sessionStorage.removeItem("rotari_sa_auth");
     }
-
-    return () => {
-      subscription.unsubscribe();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, tenants]);
+  }, []);
 
   // Anti-Spoofing Effect: Ensure activeTenantId is strictly derived from currentUser.tenant_id
   useEffect(() => {
@@ -281,7 +215,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   // Sync registries to SessionStorage
   useEffect(() => { setStorageItem("rotari_tenants_registry_v2", tenants); }, [tenants]);
-  useEffect(() => { setStorageItem("rotari_users_registry_v2", users); }, [users]);
+  useEffect(() => { setStorageItem("rotari_users_registry_v2", users.map(({ pin_code: _pinCode, ...user }) => user)); }, [users]);
   useEffect(() => { setStorageItem("rotari_products_registry_v2", allProductsServices); }, [allProductsServices]);
   useEffect(() => { setStorageItem("rotari_expenses_registry_v2", allExpenses); }, [allExpenses]);
   useEffect(() => { setStorageItem("rotari_customers_registry_v2", allCustomers); }, [allCustomers]);
@@ -489,169 +423,21 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     persistTenantToSupabase(merged);
   };
 
-  const setCurrentUserRole = (role: Role) => {
-    const targetUser = scopedUsers.find((u) => u.role === role) || scopedUsers[0] || users[0];
-    setCurrentUser(targetUser);
-  };
-
-  const loginWithCredentials = (identifier: string, pin: string): { success: boolean; user?: User } => {
-    const cleanId = identifier.trim().toLowerCase();
-    const cleanPin = pin.trim();
-
-    // 1. Super Admin Isolated Check
-    const matchesSuperAdmin = 
-      (cleanPin === SUPER_ADMIN_USER.pin_code) &&
-      (!cleanId || cleanId === "superadmin" || cleanId === "superadmin@radartoko.id" || cleanId === "superadmin@rotari.id" || cleanId === "super_admin");
-
-    if (matchesSuperAdmin) {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("rotari_sa_auth", "true");
-        sessionStorage.setItem("rotari_auth_user_id", SUPER_ADMIN_USER.id);
-      }
-      setCurrentUser(SUPER_ADMIN_USER);
-      setIsAuthenticated(true);
-      return { success: true, user: SUPER_ADMIN_USER };
-    }
-
-    // 2. Demo Cashier Shortcut / Alias Check
-    if (
-      cleanId === "kasir" || 
-      cleanId === "kasir@rotari.id" || 
-      cleanId === "cashier" ||
-      cleanId === "siti" ||
-      cleanId === "siti@rotari.id"
-    ) {
-      if (cleanPin === "1122" || cleanPin === "123456" || cleanPin === "3344" || !cleanPin) {
-        const cashierUser = users.find((u) => u.role === "cashier") || initialUsers[1];
-        setCurrentUser(cashierUser);
-        setActiveTenantId(cashierUser.tenant_id);
-        setIsAuthenticated(true);
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("rotari_auth_user_id", cashierUser.id);
-          sessionStorage.setItem("rotari_active_tenant_id", cashierUser.tenant_id);
-        }
-        return { success: true, user: cashierUser };
-      }
-    }
-
-    // 3. Demo Owner Shortcut / Alias Check
-    if (
-      cleanId === "owner" ||
-      cleanId === "owner@rotari.id" ||
-      cleanId === "budi"
-    ) {
-      if (cleanPin === "123456" || !cleanPin) {
-        const ownerUser = users.find((u) => u.role === "owner") || initialUsers[0];
-        setCurrentUser(ownerUser);
-        setActiveTenantId(ownerUser.tenant_id);
-        setIsAuthenticated(true);
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("rotari_auth_user_id", ownerUser.id);
-          sessionStorage.setItem("rotari_active_tenant_id", ownerUser.tenant_id);
-        }
-        return { success: true, user: ownerUser };
-      }
-    }
-
-    // 4. Standard Tenant User Check
-    const matchedUser = users.find((u) => {
-      const matchesPin = u.pin_code === cleanPin;
-      if (!cleanId) return matchesPin;
-      const matchesId = 
-        (u.email && u.email.toLowerCase().includes(cleanId)) || 
-        (u.name && u.name.toLowerCase().includes(cleanId)) || 
-        u.id.toLowerCase() === cleanId ||
-        u.role.toLowerCase() === cleanId;
-      return matchesId && matchesPin;
-    });
-
-    if (matchedUser) {
-      if (matchedUser.email) {
-        supabase.auth.signInWithPassword({
-          email: matchedUser.email,
-          password: cleanPin,
-        }).catch((err) => {
-          console.warn("Supabase Auth signIn attempt:", err?.message || err);
-        });
-      }
-      setCurrentUser(matchedUser);
-      setActiveTenantId(matchedUser.tenant_id);
-      setIsAuthenticated(true);
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("rotari_auth_user_id", matchedUser.id);
-        sessionStorage.setItem("rotari_active_tenant_id", matchedUser.tenant_id);
-      }
-      return { success: true, user: matchedUser };
-    }
-
+  // Client-only PIN authentication and demo aliases were removed.
+  // A future login must verify credentials with Supabase Auth and resolve
+  // authorization from a trusted server-side profile/membership record.
+  const loginWithCredentials = (_identifier: string, _pin: string): { success: boolean; user?: User } => {
+    setIsAuthenticated(false);
     return { success: false };
   };
 
-  const setCurrentUserWithPin = (userId: string, pin: string): boolean => {
-    return loginWithCredentials(userId, pin).success;
-  };
-
-  // Task 4: Tenant Baru Registration (Isolated from Demo Tenant)
-  const registerDemoTenant = ({ name, email, phone, businessName, businessType, pinCode }: { name: string; email: string; phone: string; businessName: string; businessType?: BusinessType; pinCode?: string }): User => {
-    const newTenantId = `tenant-${Date.now()}`;
-    const trialExpiryIso = new Date(Date.now() + 14 * 86400000).toISOString();
-    
-    const newTenant: Tenant = {
-      id: newTenantId,
-      business_name: businessName,
-      business_type: businessType || "retail",
-      logo_url: "/logo.png",
-      address: "Outlet Utama",
-      phone_number: phone,
-      terms_and_conditions: initialTenant.terms_and_conditions,
-      thermal_paper_size: "68mm",
-      theme_preference: "light",
-      created_at: new Date().toISOString(),
-      trial_ends_at: trialExpiryIso,
-      subscription_status: "trial",
-      reminder_rules: initialTenant.reminder_rules,
-    };
-
-    const newOwnerUser: User = {
-      id: `user-owner-${Date.now()}`,
-      tenant_id: newTenantId,
-      name,
-      email,
-      role: "owner",
-      pin_code: pinCode && pinCode.trim() ? pinCode.trim() : "123456",
-      is_active: true,
-    };
-
-    // Add to multi-tenant registries without touching existing Demo Tenant (tenant-001)
-    setTenants((prev) => [newTenant, ...prev]);
-    setUsers((prev) => [newOwnerUser, ...prev]);
-    setActiveTenantId(newTenantId);
-    setCurrentUser(newOwnerUser);
-    setIsAuthenticated(true);
-
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("rotari_auth_user_id", newOwnerUser.id);
-      sessionStorage.setItem("rotari_active_tenant_id", newTenantId);
-    }
-
-    persistTenantToSupabase(newTenant);
-    persistUserToSupabase(newOwnerUser);
-
-    addProspectLead({
-      name,
-      email,
-      phone,
-      business_name: businessName,
-    });
-
-    return newOwnerUser;
-  };
-
   const logout = () => {
-    supabase.auth.signOut().catch((err) => {
+    void supabase.auth.signOut().catch((err) => {
       console.warn("Supabase Auth signOut error:", err?.message || err);
     });
     setIsAuthenticated(false);
+    setCurrentUser(initialUsers[0]);
+    setActiveTenantId(initialTenant.id);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("rotari_auth_user_id");
       sessionStorage.removeItem("rotari_active_tenant_id");
@@ -659,22 +445,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserPin = (userId: string, newPin: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const updated = { ...u, pin_code: newPin };
-          persistUserToSupabase(updated);
-          return updated;
-        }
-        return u;
-      })
-    );
-    if (currentUser.id === userId) {
-      const updatedCurr = { ...currentUser, pin_code: newPin };
-      setCurrentUser(updatedCurr);
-      persistUserToSupabase(updatedCurr);
-    }
+  // PINs are no longer an application credential and are not stored locally
+  // or synchronized. Password management belongs to the Auth provider.
+  const updateUserPin = (_userId: string, _newPin: string) => {
+    console.warn("Local PIN changes are disabled; use the verified account recovery flow.");
   };
 
   const toggleAttendance = (userId: string) => {
@@ -770,8 +544,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteProductService = (id: string) => {
-    setAllProductsServices((prev) => prev.filter((p) => p.id !== id));
-    deleteProductServiceFromSupabase(id);
+    setAllProductsServices((prev) => prev.filter((p) => !(p.id === id && p.tenant_id === activeTenant.id)));
+    void deleteProductServiceFromSupabase(id, activeTenant.id);
   };
 
   const addExpense = (expense: Omit<OperationalExpense, "id" | "tenant_id">) => {
@@ -786,8 +560,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteExpense = (id: string) => {
-    setAllExpenses((prev) => prev.filter((e) => e.id !== id));
-    deleteExpenseFromSupabase(id);
+    setAllExpenses((prev) => prev.filter((e) => !(e.id === id && e.tenant_id === activeTenant.id)));
+    void deleteExpenseFromSupabase(id, activeTenant.id);
   };
 
   const addCustomer = (
@@ -819,8 +593,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteCustomer = (id: string) => {
-    setAllCustomers((prev) => prev.filter((c) => c.id !== id));
-    deleteCustomerFromSupabase(id);
+    setAllCustomers((prev) => prev.filter((c) => !(c.id === id && c.tenant_id === activeTenant.id)));
+    void deleteCustomerFromSupabase(id, activeTenant.id);
   };
 
   const addTransaction = (
@@ -991,10 +765,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         updateLeadStatus,
         deleteProspectLead,
         updateTenant,
-        setCurrentUserRole,
-        setCurrentUserWithPin,
         loginWithCredentials,
-        registerDemoTenant,
         updateUserPin,
         toggleAttendance,
         addUser,
