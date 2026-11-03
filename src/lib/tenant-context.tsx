@@ -215,7 +215,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   // Sync registries to SessionStorage
   useEffect(() => { setStorageItem("rotari_tenants_registry_v2", tenants); }, [tenants]);
-  useEffect(() => { setStorageItem("rotari_users_registry_v2", users); }, [users]);
+  useEffect(() => { setStorageItem("rotari_users_registry_v2", users.map(({ pin_code: _pinCode, ...user }) => user)); }, [users]);
   useEffect(() => { setStorageItem("rotari_products_registry_v2", allProductsServices); }, [allProductsServices]);
   useEffect(() => { setStorageItem("rotari_expenses_registry_v2", allExpenses); }, [allExpenses]);
   useEffect(() => { setStorageItem("rotari_customers_registry_v2", allCustomers); }, [allCustomers]);
@@ -445,22 +445,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserPin = (userId: string, newPin: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const updated = { ...u, pin_code: newPin };
-          persistUserToSupabase(updated);
-          return updated;
-        }
-        return u;
-      })
-    );
-    if (currentUser.id === userId) {
-      const updatedCurr = { ...currentUser, pin_code: newPin };
-      setCurrentUser(updatedCurr);
-      persistUserToSupabase(updatedCurr);
-    }
+  // PINs are no longer an application credential and are not stored locally
+  // or synchronized. Password management belongs to the Auth provider.
+  const updateUserPin = (_userId: string, _newPin: string) => {
+    console.warn("Local PIN changes are disabled; use the verified account recovery flow.");
   };
 
   const toggleAttendance = (userId: string) => {
