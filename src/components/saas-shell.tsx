@@ -101,11 +101,13 @@ export function SaasShell({ children }: { children: React.ReactNode }) {
     updateTenant({ theme_preference: newTheme });
   };
 
+  if (!isAuthenticated && pathname !== "/demo-request") {
+    return <LoginScreen />;
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 relative">
       
-      {!isAuthenticated && pathname !== '/demo-request' && <LoginScreen />}
-
       <LoginModal 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
