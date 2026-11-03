@@ -99,6 +99,12 @@ MIT permits use, modification, distribution, sublicensing, and commercial use su
 
 The MIT license applies to project code only to the extent the project has the rights to license it. Third-party assets, fonts, libraries, trademarks, customer data, and externally sourced materials retain their own rights and terms.
 
+## P2–P4 work products
+
+- [Regression test matrix](./REGRESSION-TEST-MATRIX.md): planned Owner, Cashier/POS, authentication, data-integrity, and tenant-isolation acceptance tests. Test execution is pending.
+- [P3 maintainability audit](./MAINTAINABILITY-AUDIT-P3.md): static findings and a safe refactoring sequence. No behavior-changing refactor has been applied.
+- [BEBF open-source plan](./BEBF-OPEN-SOURCE-PLAN.md): end-to-end business, system, engineering, verification, and governance gates.
+
 ## Release checklist
 
 - [x] License selected by owner: MIT.
@@ -110,6 +116,6 @@ The MIT license applies to project code only to the extent the project has the r
 - [ ] RLS, grants, helper functions, and cross-tenant isolation are verified in the actual Supabase project.
 - [ ] Conflicting migration history is reconciled without rewriting applied migrations.
 - [ ] Demo fixtures are isolated from production data.
-- [ ] Automated tests cover critical business rules and role boundaries.
+- [ ] Automated tests cover critical business rules and role boundaries. The test matrix exists; executable tests and evidence are still pending.
 - [ ] Deployment and rollback procedures are documented.
 - [ ] Owner approves the release.
