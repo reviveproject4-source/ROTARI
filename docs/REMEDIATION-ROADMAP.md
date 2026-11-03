@@ -184,3 +184,5 @@ Supabase is intentionally unavailable for this work. Therefore:
 - No Supabase project was opened, no SQL/migration was run or modified, and no database-backed RLS test was executed. CI verification is pending. Do not deploy this containment branch as a customer-ready release until authentication is restored securely.
 
 - CI result for commit `94e7dd5`: `npm ci`, lint, TypeScript typecheck, and production build all passed in GitHub Actions run `41577971346`. This verifies repository build checks only; it does not verify Auth, RLS, or cross-tenant isolation.
+
+- Additional P0 containment: `SaasShell` now returns the login screen before rendering protected page children when no application session is authenticated. The latest shell change is under CI run `41578185453`; the earlier commit's lint, typecheck, and build passed, but the latest commit's run is still pending.
