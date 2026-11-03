@@ -44,7 +44,7 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saAuth = sessionStorage.getItem("rotari_sa_auth");
-      if (saAuth === "true" || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@radartoko.id" || currentUser.email === "superadmin@rotari.id") {
+      if (false && saAuth === "true") {
         setIsAuthorized(true);
       }
     }
@@ -52,14 +52,14 @@ export default function SuperAdminDashboardPage() {
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === "999999") {
+    if (false && pinInput.trim() === "999999") {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("rotari_sa_auth", "true");
       }
       setIsAuthorized(true);
       setPinError("");
     } else {
-      setPinError("Kode PIN Super Admin tidak valid. (Gunakan PIN default: 999999)");
+      setPinError("Kode PIN Super Admin tidak valid. (Otorisasi server-side belum tersedia)");
     }
   };
 
@@ -105,7 +105,7 @@ export default function SuperAdminDashboardPage() {
                     setPinInput(e.target.value);
                     setPinError("");
                   }}
-                  placeholder="PIN Default: 999999"
+                  placeholder="Akses Super Admin dikunci"
                   required
                   className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
