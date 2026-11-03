@@ -74,7 +74,7 @@ Required evidence:
 
 ### 5. Open-source governance — prepare safe public collaboration
 
-- MIT License selected by owner; exact copyright holder notice still requires confirmation before adding root `LICENSE`.
+- MIT License selected by owner; root `LICENSE` added with standard MIT text and owner-supplied notice: `Copyright (c) 2026 Minara Technologi Indonesia`.
 - Keep `.env.example` limited to placeholders; never include service-role keys.
 - Audit current files and full Git history for credentials, tokens, customer data, and private exports. Rotate any exposed credential; deleting a file alone does not revoke it.
 - Ensure sample data is synthetic and clearly labelled.
@@ -90,7 +90,7 @@ Required evidence:
 1. Authentication replacement is not yet complete; login has been disabled in the security hardening branch rather than replaced with a verified end-to-end flow.
 2. Tenant isolation and deployed RLS are unverified because the Supabase project is paused.
 3. The repository contains conflicting initial schema definitions and different identifier types/project references. Do not choose or apply one by guesswork.
-4. The root MIT license file needs the copyright holder name confirmed by the owner.
+4. The root MIT license file is committed with the owner-supplied copyright notice; verify the entity's legal spelling/registered name before a formal release if it differs.
 5. Seeded demo fixtures and any historical secrets/personal data require a complete release audit.
 6. Existing CI proves lint/typecheck/build only; it does not prove business-flow correctness or security.
 
@@ -128,7 +128,7 @@ ROTARI is ready for an official open-source release only when all P0/P1 security
 
 - [x] README, setup/readiness guide, contribution guide, security policy, and CI workflow are present on this branch.
 - [x] MIT selected by owner; root `LICENSE` committed with copyright holder Minara Technologi Indonesia.
-- [ ] Root `LICENSE` remains pending exact copyright-holder confirmation.
+- [x] Root `LICENSE` added with standard MIT text and owner-supplied notice: `Copyright (c) 2026 Minara Technologi Indonesia`.
 - [ ] Full Git-history secrets/data review and third-party asset-rights review remain open.
 - [ ] Branch protection/ruleset and required review enforcement have not been verified.
 - [ ] Official public release remains blocked by unresolved P0/P1 security and database verification gates.
