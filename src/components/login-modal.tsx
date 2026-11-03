@@ -39,15 +39,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         router.push("/super-admin");
       }
     } else {
-      setErrorMsg("ID Akun atau PIN Keamanan tidak valid. Silakan coba lagi.");
-    }
-  };
-
-  const handleQuickSwitch = (id: string, pin: string, redirectPath: string) => {
-    const result = loginWithCredentials(id, pin);
-    if (result.success) {
-      onClose();
-      router.push(redirectPath);
+      setErrorMsg("Login PIN lokal dinonaktifkan sampai autentikasi server-side tersedia.");
     }
   };
 
@@ -76,67 +68,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             Ganti Pengguna &amp; Sesi
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Pilih cepat akun kasir atau masukkan PIN pengguna Radar Toko.
+            PIN lokal tidak lagi digunakan untuk mengubah identitas pengguna.
           </p>
-        </div>
-
-        {/* 1-Klik Ganti Akun Cepat */}
-        <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-            ⚡ Akses Cepat Ganti Pengguna (1-Klik):
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickSwitch("owner@rotari.id", "123456", "/")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-sky-500 text-left transition group shadow-sm"
-            >
-              <div className="font-bold text-xs text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                <span>👑 Budi Owner</span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Mode Owner (Full)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickSwitch("siti@rotari.id", "1122", "/pos")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-left transition group shadow-sm"
-            >
-              <div className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-                <span>👩 Siti Kasir</span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Mode Kasir (POS)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickSwitch("agus@rotari.id", "3344", "/pos")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-left transition group shadow-sm"
-            >
-              <div className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-                <span>👨 Agus Kasir</span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Mode Kasir (POS)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickSwitch("superadmin@radartoko.id", "999999", "/super-admin")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-purple-500 text-left transition group shadow-sm"
-            >
-              <div className="font-bold text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                <span>🛡️ Super Admin</span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Platform Multi-Tenant</span>
-            </button>
-          </div>
         </div>
 
         {/* Divider */}
         <div className="relative flex items-center justify-center">
           <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
           <span className="bg-white dark:bg-slate-900 px-3 text-[10px] font-bold uppercase text-slate-400 absolute">
-            atau verifikasi PIN manual
+            autentikasi server-side
           </span>
         </div>
 
@@ -164,7 +104,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   setIdentifier(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="misal: kasir, owner, atau nama pegawai"
+                placeholder="Akun terdaftar"
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -185,7 +125,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   setPinCode(e.target.value);
                   setErrorMsg("");
                 }}
-                placeholder="Masukkan PIN (misal: 1122 untuk kasir)"
+                placeholder="PIN lokal dinonaktifkan"
                 required
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />

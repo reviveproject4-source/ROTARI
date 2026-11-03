@@ -21,7 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default function DemoRequestPage() {
-  const { registerDemoTenant, tenant } = useTenant();
+  const { tenant } = useTenant();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,21 +34,8 @@ export default function DemoRequestPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !phone || !businessName) return;
-
-    const usedPin = pinCode.trim() ? pinCode.trim() : "123456";
-    setCreatedUserPin(usedPin);
-
-    registerDemoTenant({
-      name,
-      email,
-      phone,
-      businessName,
-      businessType,
-      pinCode: usedPin,
-    });
-
-    setSubmittedSuccess(true);
+    setSubmittedSuccess(false);
+    window.alert("Pendaftaran trial sementara dinonaktifkan. Akun dan tenant hanya boleh dibuat melalui proses server-side yang tervalidasi.");
   };
 
   return (
@@ -271,7 +258,7 @@ export default function DemoRequestPage() {
               {/* PIN Code Optional */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-600" /> PIN Log In (6 Angka) <span className="text-[10px] font-normal text-slate-400">(Opsional, Default: 123456)</span>
+                  <KeyRound className="w-3.5 h-3.5 text-amber-600" /> PIN lokal tidak digunakan <span className="text-[10px] font-normal text-slate-400">(dinonaktifkan)</span>
                 </label>
                 <input
                   type="password"

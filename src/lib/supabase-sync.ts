@@ -46,7 +46,6 @@ export async function persistUserToSupabase(user: User): Promise<SyncResult> {
       name: user.name,
       email: user.email,
       role: user.role,
-      pin_code: user.pin_code,
       is_active: user.is_active,
       clock_in: user.clock_in,
       clock_out: user.clock_out,
@@ -90,9 +89,9 @@ export async function persistCustomerToSupabase(customer: Customer): Promise<Syn
   }
 }
 
-export async function deleteCustomerFromSupabase(id: string): Promise<SyncResult> {
+export async function deleteCustomerFromSupabase(id: string, tenantId: string): Promise<SyncResult> {
   try {
-    const { error } = await supabase.from("customers").delete().eq("id", id);
+    const { error } = await supabase.from("customers").delete().eq("id", id).eq("tenant_id", tenantId);
     if (error) {
       console.error("Supabase Customer Delete Error:", error);
       return { success: false, error };
@@ -127,9 +126,9 @@ export async function persistProductServiceToSupabase(item: ProductService): Pro
   }
 }
 
-export async function deleteProductServiceFromSupabase(id: string): Promise<SyncResult> {
+export async function deleteProductServiceFromSupabase(id: string, tenantId: string): Promise<SyncResult> {
   try {
-    const { error } = await supabase.from("products_services").delete().eq("id", id);
+    const { error } = await supabase.from("products_services").delete().eq("id", id).eq("tenant_id", tenantId);
     if (error) {
       console.error("Supabase Product/Service Delete Error:", error);
       return { success: false, error };
@@ -162,9 +161,9 @@ export async function persistExpenseToSupabase(expense: OperationalExpense): Pro
   }
 }
 
-export async function deleteExpenseFromSupabase(id: string): Promise<SyncResult> {
+export async function deleteExpenseFromSupabase(id: string, tenantId: string): Promise<SyncResult> {
   try {
-    const { error } = await supabase.from("operational_expenses").delete().eq("id", id);
+    const { error } = await supabase.from("operational_expenses").delete().eq("id", id).eq("tenant_id", tenantId);
     if (error) {
       console.error("Supabase Expense Delete Error:", error);
       return { success: false, error };
