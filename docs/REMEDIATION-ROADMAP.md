@@ -131,6 +131,47 @@ Supabase is intentionally unavailable for this work. Therefore:
 |---|---|---|
 | Initial source audit | Findings recorded | `docs/SECURITY-AUDIT-2026-11.md` |
 | Remediation branch | In progress | `security/auth-tenant-isolation-hardening` |
-| P0 authentication | Pending implementation and tests | Supabase remains unavailable |
-| P1 tenant isolation | Blocked for final verification | Requires deployed schema/RLS access |
-| P2–P6 | Pending | To be handled in separate reviewable increments |
+| P0 authentication | Source audit complete; implementation gated | Auth/profile contract is not established; safe profile resolution and privileged server authorization cannot be proven without the approved Auth/profile design and later verification |
+| P1 tenant isolation | Source audit complete; production verification blocked | Browser-controlled tenant state and local registries remain; deployed RLS cannot be inspected under the no-Supabase constraint |
+| P2 data integrity | Source audit complete; remediation pending | PIN is included in profile upserts; delete helpers filter by row ID only; persistence outcomes are not consistently tied to UI success |
+| P3–P6 | Pending | To be handled in separate reviewable increments |
+
+
+## P0–P2 follow-up audit (2026-11-03)
+
+### P0 — additional confirmed source paths
+
+- `src/lib/tenant-context.tsx`: session restoration accepts `rotari_auth_user_id` for the seeded Super Admin identity without requiring an Auth session.
+- `src/app/super-admin/page.tsx`: the page accepts `rotari_sa_auth=true` and the fixed PIN `999999`; both are browser-controlled.
+- `src/components/login-modal.tsx` and `src/components/login-screen.tsx`: fixed owner/cashier/Super Admin quick-login controls are rendered.
+- `src/components/saas-shell.tsx`: owner-to-cashier quick switch supplies a fixed cashier credential and navigates regardless of the authentication result.
+- `src/lib/tenant-context.tsx`: the ordinary login path matches browser-held user records by fuzzy email/name/role and PIN, starts Supabase password sign-in without awaiting it, then marks the app authenticated immediately.
+- `src/app/demo-request/page.tsx` and `registerDemoTenant`: public form creates a tenant/user in browser state, assigns a default PIN, and marks that fabricated user authenticated.
+- `src/components/navigation.tsx`/tenant context: role selection must not be treated as an authorization operation. The current context exposes a role mutation method; all callers must be removed or converted to a genuine re-authentication flow.
+
+**Implementation gate:** the current app has no established trusted profile/tenant membership contract. The profile resolver currently searches browser-held `users` by ID **or email**, and tenant records are also held in browser state. A safe replacement must use the authenticated Auth UID and a trusted profile/membership record, with role changes protected by server-side policy. Guessing the mapping or silently retaining local profile authority would leave a privilege-escalation path. Therefore P0 is not marked fixed by this audit.
+
+### P1 — tenant boundary observations
+
+- `activeTenantId` is initially restored from `sessionStorage`; client reconciliation is not an authorization boundary.
+- All business collections are loaded/merged from browser `sessionStorage` and filtered in React by the active tenant.
+- Supabase sync helpers accept objects containing caller-supplied `tenant_id`.
+- Existing migration files are conflicting and include permissive prospect-lead policies; deployed schema and effective policies remain unknown.
+
+**Implementation gate:** RLS cannot be safely redesigned or verified from source files alone. No migration edits or database claims are made. Tenant isolation remains **UNVERIFIED**.
+
+### P2 — data integrity observations
+
+- `persistUserToSupabase` writes `pin_code` to the `users` table.
+- `deleteCustomerFromSupabase`, `deleteProductServiceFromSupabase`, and `deleteExpenseFromSupabase` delete by `id` only; they do not include a tenant predicate.
+- Many context actions update browser state before awaiting/confirming persistence, and callers often ignore the returned `SyncResult`.
+- `src/lib/supabase.ts` contains a hard-coded fallback project URL and key. This risks silently targeting an unintended project when environment variables are absent.
+
+**Implementation gate:** P2 changes need a confirmed schema contract and an explicit policy for offline/local-only behavior. The hard-coded fallback should be removed in a separate controlled change after CI/build environment variables are reviewed. No Supabase connection was made.
+
+### Work performed in this follow-up
+
+- Re-read the current source files on the remediation branch and traced authentication call sites.
+- No application source code was changed in this follow-up because the trusted Auth/profile contract and persistence schema are not established.
+- No Supabase project was opened, no SQL was run, and no migrations were applied.
+- No claim of P0/P1/P2 completion is made.
