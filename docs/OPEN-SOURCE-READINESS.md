@@ -91,13 +91,18 @@ The repository owner reviews and decides whether a contribution is accepted. A p
 
 ## License and reuse
 
-**No open-source license has been selected yet.** Until the repository owner adds a license file, do not assume that public visibility grants permission to reuse, modify, redistribute, or commercially exploit the code.
+**Owner decision: MIT License selected on 2026-11-04.**
 
-The owner must choose and add an appropriate license before describing ROTARI as licensed open-source software. This document does not select a license on the owner's behalf.
+The SPDX license identifier for the intended release is `MIT`. The root `LICENSE` file is still pending confirmation of the exact copyright holder name. Do not treat the repository as fully licensed for reuse or announce an official open-source release until the standard MIT text and verified copyright notice are committed.
+
+MIT permits use, modification, distribution, sublicensing, and commercial use subject to preservation of the copyright and license notices. It provides the software without warranty or liability. See the [MIT License text](https://opensource.org/license/mit) and [GitHub licensing guidance](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
+
+The MIT license applies to project code only to the extent the project has the rights to license it. Third-party assets, fonts, libraries, trademarks, customer data, and externally sourced materials retain their own rights and terms.
 
 ## Release checklist
 
-- [ ] License selected and added by the owner.
+- [x] License selected by owner: MIT.
+- [ ] Add root `LICENSE` with standard MIT text and confirmed copyright holder.
 - [ ] README accurately describes current capabilities and limitations.
 - [ ] Local setup succeeds from a clean clone.
 - [ ] CI lint, typecheck, and build pass.
