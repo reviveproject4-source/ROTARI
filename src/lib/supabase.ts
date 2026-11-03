@@ -1,7 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://oluzsthlxjxxpukxkcry.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sdXpzdGhseGp4eHB1a3hrY3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjU0MzQsImV4cCI6MjA5NTU0MTQzNH0.dummy_anon_key_for_build";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Build environments without Supabase configuration must not silently target
+// a real project. The .invalid hostname is deliberately non-routable.
+const clientUrl = supabaseUrl || "https://supabase-not-configured.invalid";
+const clientKey = supabaseAnonKey || "supabase-not-configured";
 
 export const supabase = createClient(clientUrl, clientKey, {
   auth: {
