@@ -105,3 +105,32 @@ Required evidence:
 ## Definition of done
 
 ROTARI is ready for an official open-source release only when all P0/P1 security and data-integrity gates are evidenced, critical business workflows pass regression tests, clean-clone setup is reproducible, all distributed assets have compatible rights, the MIT license is complete, and the repository owner approves the release.
+
+
+## P2–P4 execution update — 2026-11-04
+
+### P2 — Regression protection
+
+- [x] Added `docs/REGRESSION-TEST-MATRIX.md` with Owner, Cashier/POS, authentication/session, tenant-isolation, and data-integrity scenarios.
+- [x] Identified business rules requiring owner confirmation before they can become test assertions.
+- [ ] Dedicated automated test runner and executable unit/integration/E2E tests are still pending.
+- [ ] Database-backed tenant isolation tests are blocked until an isolated Supabase test environment is available.
+- [ ] Critical business workflow tests have not yet been executed; matrix status is specification-only.
+
+### P3 — Maintainability
+
+- [x] Added `docs/MAINTAINABILITY-AUDIT-P3.md` with evidence-based findings and safe refactor sequence.
+- [x] Recorded duplicate PostCSS/Tailwind configuration, oversized modules, browser-storage data authority, persistence-layer risks, project-reference inconsistency, and demo-fixture coupling.
+- [ ] No behavior-changing refactor has been made. Consolidation and component extraction must follow P2 regression coverage.
+- [ ] Persistence and schema remediation remain dependent on trusted auth design and owner-confirmed database state.
+
+### P4 — Open-source governance
+
+- [x] README, setup/readiness guide, contribution guide, security policy, and CI workflow are present on this branch.
+- [x] MIT selected by owner.
+- [ ] Root `LICENSE` remains pending exact copyright-holder confirmation.
+- [ ] Full Git-history secrets/data review and third-party asset-rights review remain open.
+- [ ] Branch protection/ruleset and required review enforcement have not been verified.
+- [ ] Official public release remains blocked by unresolved P0/P1 security and database verification gates.
+
+**Important:** documentation completion is not equivalent to test execution, security certification, or release approval.
