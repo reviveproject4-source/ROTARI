@@ -127,7 +127,7 @@ ROTARI is ready for an official open-source release only when all P0/P1 security
 ### P4 — Open-source governance
 
 - [x] README, setup/readiness guide, contribution guide, security policy, and CI workflow are present on this branch.
-- [x] MIT selected by owner.
+- [x] MIT selected by owner; root `LICENSE` committed with copyright holder Minara Technologi Indonesia.
 - [ ] Root `LICENSE` remains pending exact copyright-holder confirmation.
 - [ ] Full Git-history secrets/data review and third-party asset-rights review remain open.
 - [ ] Branch protection/ruleset and required review enforcement have not been verified.
