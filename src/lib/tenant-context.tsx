@@ -183,8 +183,25 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [users, setUsers] = useState<User[]>(() => getStorageItemWithMerge("rotari_users_registry_v2", initialUsers));
-  const [currentUser, setCurrentUser] = useState<User>(() => initialUsers[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<User>(() => {
+    if (typeof window !== "undefined") {
+      const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
+      if (savedUserId) {
+        if (savedUserId === SUPER_ADMIN_USER.id) return SUPER_ADMIN_USER;
+        const savedUsers = getStorageItemWithMerge("rotari_users_registry_v2", initialUsers);
+        const found = savedUsers.find((u) => u.id === savedUserId);
+        if (found) return found;
+      }
+    }
+    return initialUsers[0];
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
+      return !!savedUserId;
+    }
+    return false;
+  });
 
   // Repositories
   const [allProductsServices, setAllProductsServices] = useState<ProductService[]>(() => getStorageItemWithMerge("rotari_products_registry_v2", initialProductsServices));
@@ -255,9 +272,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     if (typeof window !== "undefined") {
       const savedUserId = sessionStorage.getItem("rotari_auth_user_id");
-      if (savedUserId && savedUserId === SUPER_ADMIN_USER.id) {
-        setCurrentUser(SUPER_ADMIN_USER);
-        setIsAuthenticated(true);
+      if (savedUserId) {
+        if (savedUserId === SUPER_ADMIN_USER.id) {
+          setCurrentUser(SUPER_ADMIN_USER);
+          setIsAuthenticated(true);
+        } else {
+          const savedUser = users.find((u) => u.id === savedUserId);
+          if (savedUser) {
+            setCurrentUser(savedUser);
+            setActiveTenantId(savedUser.tenant_id);
+            setIsAuthenticated(true);
+          }
+        }
       }
     }
 
@@ -522,7 +548,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       cleanId === "siti" ||
       cleanId === "siti@rotari.id"
     ) {
-      const cashierUser = users.find((u) => u.role === "cashier") || initialUsers[1];
+      const cashierUser = users.find((u) => u.tenant_id === "tenant-001" && u.role === "cashier") || initialUsers[1];
       if (!cleanPin || verifyPinSync(cleanPin, cashierUser.pin_hash || cashierUser.pin_code)) {
 
         setCurrentUser(cashierUser);
@@ -542,7 +568,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       cleanId === "owner@rotari.id" ||
       cleanId === "budi"
     ) {
-      const ownerUser = users.find((u) => u.role === "owner") || initialUsers[0];
+      const ownerUser = users.find((u) => u.tenant_id === "tenant-001" && u.role === "owner") || initialUsers[0];
       if (!cleanPin || verifyPinSync(cleanPin, ownerUser.pin_hash || ownerUser.pin_code)) {
 
         setCurrentUser(ownerUser);
@@ -623,17 +649,54 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       reminder_rules: initialTenant.reminder_rules,
     };
 
+    const cleanPin = pinCode && pinCode.trim() ? pinCode.trim() : "123456";
+    const initialHash = KNOWN_HASHES[cleanPin];
+
     const newOwnerUser: User = {
       id: `user-owner-${Date.now()}`,
       tenant_id: newTenantId,
       name,
       email,
       role: "owner",
-      pin_hash: (pinCode && pinCode.trim() && KNOWN_HASHES[pinCode.trim()]) 
-        ? KNOWN_HASHES[pinCode.trim()] 
-        : "dfb8784acf22e3d71c5b31b8fb2b02df9203b0de4e333678bdfac480077af603",
+      pin_hash: initialHash,
+      pin_code: initialHash ? undefined : cleanPin,
       is_active: true,
     };
+
+    if (!initialHash) {
+      hashPin(cleanPin).then((calculatedHash) => {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === newOwnerUser.id
+              ? { ...u, pin_hash: calculatedHash, pin_code: undefined }
+              : u
+          )
+        );
+      }).catch(() => {});
+    }
+
+    const starterType = businessType || "retail";
+    let starterItems: ProductService[] = [];
+    if (starterType === "service") {
+      starterItems = [
+        { id: `ps-${Date.now()}-1`, tenant_id: newTenantId, name: "Jasa Servis & Perbaikan Ringan", type: "service", cost_price: 25000, sell_price: 150000, duration_minutes: 60, raw_material_cost: 15000, stock: 0, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-2`, tenant_id: newTenantId, name: "Paket Reparasi & Sparepart Utama", type: "service", cost_price: 150000, sell_price: 450000, duration_minutes: 120, raw_material_cost: 100000, stock: 0, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-3`, tenant_id: newTenantId, name: "Cairan Pembersih & Perawatan Khusus", type: "product", cost_price: 35000, sell_price: 75000, stock: 25, is_dead_stock: false, last_sold_at: new Date().toISOString() }
+      ];
+    } else if (starterType === "restaurant") {
+      starterItems = [
+        { id: `ps-${Date.now()}-1`, tenant_id: newTenantId, name: "Menu Makanan Utama Spesial", type: "product", cost_price: 18000, sell_price: 38000, stock: 50, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-2`, tenant_id: newTenantId, name: "Minuman Dingin Segar", type: "product", cost_price: 5000, sell_price: 15000, stock: 100, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-3`, tenant_id: newTenantId, name: "Camilan / Snack Penutup", type: "product", cost_price: 8000, sell_price: 20000, stock: 40, is_dead_stock: false, last_sold_at: new Date().toISOString() }
+      ];
+    } else {
+      starterItems = [
+        { id: `ps-${Date.now()}-1`, tenant_id: newTenantId, name: "Produk Unggulan Toko", type: "product", cost_price: 45000, sell_price: 89000, stock: 35, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-2`, tenant_id: newTenantId, name: "Produk Aksesoris Tambahan", type: "product", cost_price: 15000, sell_price: 35000, stock: 60, is_dead_stock: false, last_sold_at: new Date().toISOString() },
+        { id: `ps-${Date.now()}-3`, tenant_id: newTenantId, name: "Layanan Packing Hadiah & Pengiriman", type: "service", cost_price: 5000, sell_price: 25000, duration_minutes: 15, raw_material_cost: 3000, stock: 0, is_dead_stock: false, last_sold_at: new Date().toISOString() }
+      ];
+    }
+    setAllProductsServices((prev) => [...starterItems, ...prev]);
 
     // Add to multi-tenant registries without touching existing Demo Tenant (tenant-001)
     setTenants((prev) => [newTenant, ...prev]);

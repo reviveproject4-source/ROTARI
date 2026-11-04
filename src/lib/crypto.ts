@@ -8,7 +8,8 @@
 const PIN_SALT = "rotari_pin_v1_minara";
 
 /**
- * Pre-computed SHA-256 hashes for default seeded roles with salt 'rotari_pin_v1_minara'
+ * Pre-computed SHA-256 hashes for default seeded roles with salt 'rotari_pin_v1_minara'.
+ * Also serves as an in-memory hash cache for dynamically registered user PINs.
  */
 export const KNOWN_HASHES: Record<string, string> = {
   "123456": "dfb8784acf22e3d71c5b31b8fb2b02df9203b0de4e333678bdfac480077af603",
@@ -18,7 +19,18 @@ export const KNOWN_HASHES: Record<string, string> = {
 };
 
 /**
- * Asynchronously hash a PIN using standard Web Crypto API (SHA-256 with salt)
+ * Explicitly cache a dynamically computed PIN hash in the synchronous lookup table
+ */
+export function cachePinHash(pin: string, hash: string): void {
+  const cleanPin = pin.trim();
+  if (cleanPin && hash) {
+    KNOWN_HASHES[cleanPin] = hash;
+  }
+}
+
+/**
+ * Asynchronously hash a PIN using standard Web Crypto API (SHA-256 with salt).
+ * Automatically caches the computed hash in KNOWN_HASHES for synchronous verification.
  */
 export async function hashPin(pin: string): Promise<string> {
   const cleanPin = pin.trim();
@@ -27,21 +39,27 @@ export async function hashPin(pin: string): Promise<string> {
   }
 
   const text = `${PIN_SALT}:${cleanPin}`;
+  let resultHash = "";
+
   if (typeof crypto !== "undefined" && crypto.subtle) {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    resultHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  } else {
+    // Fallback hash implementation for environments without WebCrypto
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash << 5) - hash + text.charCodeAt(i);
+      hash |= 0;
+    }
+    resultHash = `h_${Math.abs(hash).toString(16)}`;
   }
 
-  // Fallback hash implementation for environments without WebCrypto
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
-  }
-  return `h_${Math.abs(hash).toString(16)}`;
+  // Cache computed hash for immediate synchronous evaluation
+  KNOWN_HASHES[cleanPin] = resultHash;
+  return resultHash;
 }
 
 /**
@@ -52,7 +70,7 @@ export async function verifyPin(inputPin: string, storedHashOrPin?: string): Pro
   if (!inputPin || !storedHashOrPin) return false;
   const cleanInput = inputPin.trim();
 
-  // 1. Direct match with pre-computed hash
+  // 1. Direct match with pre-computed / cached hash
   const expectedHash = KNOWN_HASHES[cleanInput];
   if (expectedHash && storedHashOrPin === expectedHash) {
     return true;
@@ -74,13 +92,14 @@ export async function verifyPin(inputPin: string, storedHashOrPin?: string): Pro
 
 /**
  * Synchronous verification of input PIN against stored hash or legacy plaintext.
- * Provides backwards-compatibility evaluation for existing legacy PIN data.
+ * Provides backwards-compatibility evaluation for existing legacy PIN data
+ * and instant evaluation for cached hashes.
  */
 export function verifyPinSync(inputPin: string, storedHashOrPin?: string): boolean {
   if (!inputPin || !storedHashOrPin) return false;
   const cleanInput = inputPin.trim();
 
-  // 1. Direct match with pre-computed hash
+  // 1. Direct match with pre-computed or cached hash
   const expectedHash = KNOWN_HASHES[cleanInput];
   if (expectedHash && storedHashOrPin === expectedHash) {
     return true;
