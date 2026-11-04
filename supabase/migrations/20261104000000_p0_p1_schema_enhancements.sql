@@ -54,33 +54,26 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- 6. STORAGE OBJECT POLICIES (Idempotent)
-DO $$
-BEGIN
-  -- Read Policy: Allow public read of transaction photos
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Read Transaction Photos'
-  ) THEN
-    CREATE POLICY "Public Read Transaction Photos" ON storage.objects
-      FOR SELECT USING (bucket_id = 'transaction-photos');
-  END IF;
+-- 6. STORAGE OBJECT POLICIES (Idempotent & Scoped)
+-- Upload Policy: Permitted for authenticated users and app cashier clients
+DROP POLICY IF EXISTS "Allow Upload Transaction Photos" ON storage.objects;
+CREATE POLICY "Allow Upload Transaction Photos" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'transaction-photos'
+    AND (auth.role() IN ('authenticated', 'anon'))
+  );
 
-  -- Insert Policy: Allow upload of transaction photos (anon & authenticated)
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Upload Transaction Photos'
-  ) THEN
-    CREATE POLICY "Allow Upload Transaction Photos" ON storage.objects
-      FOR INSERT WITH CHECK (bucket_id = 'transaction-photos');
-  END IF;
+-- Manage Policies: Restrict object updating/deleting to the owner or service_role
+DROP POLICY IF EXISTS "Allow Update Transaction Photos" ON storage.objects;
+CREATE POLICY "Allow Update Transaction Photos" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'transaction-photos'
+    AND (auth.uid() = owner OR auth.role() = 'service_role')
+  );
 
-  -- Manage Policy: Allow update/delete of transaction photos
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies 
-    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Manage Transaction Photos'
-  ) THEN
-    CREATE POLICY "Allow Manage Transaction Photos" ON storage.objects
-      FOR ALL USING (bucket_id = 'transaction-photos');
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Allow Delete Transaction Photos" ON storage.objects;
+CREATE POLICY "Allow Delete Transaction Photos" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'transaction-photos'
+    AND (auth.uid() = owner OR auth.role() = 'service_role')
+  );
