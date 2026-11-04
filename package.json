@@ -30,7 +30,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/crypto-security.test.ts tests/tenant-isolation.test.ts tests/rls-policies.test.ts",
+    "ci": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.1",

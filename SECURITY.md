@@ -36,10 +36,31 @@ Please include:
 
 ---
 
-## Security Architecture & Best Practices
+## Security Architecture & Defenses
 
-ROTARI enforces several layers of defense:
-1. **Row Level Security (RLS):** All database tables have PostgreSQL RLS enabled to guarantee cross-tenant data isolation.
-2. **Environment Variables:** Service role keys and secrets must never be committed to git or exposed in client bundles (`NEXT_PUBLIC_`).
-3. **Storage Access Control:** Bucket storage policies restrict mutations to authorized accounts while serving read assets safely.
-4. **Input Sanitization:** Disallow SQL/script injections on all form fields and WhatsApp template variables.
+ROTARI enforces multi-layered defense mechanisms across client, application, and database:
+
+1. **Row Level Security (RLS) & Tenant Isolation:**
+   - Every database table enforces PostgreSQL Row Level Security.
+   - Cross-tenant data leaks and forged tenant queries are rejected at the database engine level.
+   - Public leads (`prospect_leads`) are readable only by authenticated Super Admin; public users have only validated `INSERT` access.
+
+2. **SQL Function Hardening (`SECURITY DEFINER`):**
+   - Helper functions (`public.get_auth_tenant_id()` and `public.get_auth_user_role()`) explicitly specify `SET search_path = public, pg_temp` to prevent schema search-path hijacking attacks.
+   - Default public execution permissions are revoked (`REVOKE EXECUTE ... FROM PUBLIC`).
+
+3. **Cryptographic Salted Hashing for PINs:**
+   - User PINs are never stored or displayed in plaintext.
+   - Salted SHA-256 cryptographic hashing (`rotari_pin_v1_minara:<pin>`) is used for verification.
+   - Legacy PIN migration automatically upgrades existing plaintext data to salted hashes upon authentication.
+
+4. **Private Storage & Signed URLs:**
+   - Attachment buckets (`transaction-photos`) are strictly private (`public = false`).
+   - Anonymous uploads are denied; only authenticated tenant accounts can upload.
+   - Sensitive receipt and repair photos are accessed exclusively through short-lived or 7-day cryptographic Signed URLs.
+
+5. **Server-Side Super Admin Authentication:**
+   - Super Admin elevation is verified against Supabase Auth sessions and database-backed roles, eliminating client-side `sessionStorage` bypass vulnerabilities.
+
+6. **Continuous Automated Security Testing:**
+   - Automated test suites (`tests/crypto-security.test.ts`, `tests/tenant-isolation.test.ts`, `tests/rls-policies.test.ts`) run in CI to ensure no security regression occurs.

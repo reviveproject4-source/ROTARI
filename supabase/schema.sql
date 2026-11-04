@@ -47,24 +47,34 @@ CREATE TABLE IF NOT EXISTS public.users (
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- Helper Function: Get Tenant ID from Auth Session or User Record
+-- Hardened with fixed search_path = public, pg_temp to prevent schema hijacking
 CREATE OR REPLACE FUNCTION public.get_auth_tenant_id()
 RETURNS TEXT
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
   SELECT tenant_id FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.get_auth_tenant_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_auth_tenant_id() TO authenticated, anon;
+
 -- Helper Function: Get Verified Role from Database or JWT
+-- Hardened with fixed search_path = public, pg_temp to prevent schema hijacking
 CREATE OR REPLACE FUNCTION public.get_auth_user_role()
 RETURNS TEXT
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
   SELECT role FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.get_auth_user_role() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_auth_user_role() TO authenticated, anon;
 
 -- -----------------------------------------------------------------------------
 -- 3. CUSTOMERS TABLE

@@ -1,18 +1,51 @@
 -- =============================================================================
 -- ROTARI / RADAR TOKO: SECURITY HARDENING MIGRATION
--- P0 Security Fixes: Prospect Leads RLS, Storage Private Bucket, Hashed PINs
+-- P0-P1 Security Fixes: Prospect Leads RLS, Storage Private Bucket, Hashed PINs,
+-- Hardened SECURITY DEFINER Functions with search_path protection.
 -- Target Project: oluzsthlxjxxpukxkcry
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1. USERS TABLE: ALLOW FULL-LENGTH CRYPTOGRAPHIC PIN HASHES
+-- 1. USERS & PROSPECT LEADS SCHEMA RECONCILIATION
 -- -----------------------------------------------------------------------------
 ALTER TABLE public.users 
   ALTER COLUMN pin_code TYPE TEXT,
   ADD COLUMN IF NOT EXISTS pin_hash TEXT;
 
+ALTER TABLE public.prospect_leads
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'new';
+
 -- -----------------------------------------------------------------------------
--- 2. PROSPECT LEADS: ELIMINATE 'OR true' BYPASS (STRICT SUPERADMIN ACCESS)
+-- 2. HARDENING SECURITY DEFINER FUNCTIONS (FIX search_path HIJACKING)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_auth_tenant_id()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT tenant_id FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.get_auth_tenant_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_auth_tenant_id() TO authenticated, anon;
+
+CREATE OR REPLACE FUNCTION public.get_auth_user_role()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT role FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.get_auth_user_role() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_auth_user_role() TO authenticated, anon;
+
+-- -----------------------------------------------------------------------------
+-- 3. PROSPECT LEADS: ELIMINATE 'OR true' BYPASS (STRICT SUPERADMIN ACCESS)
 -- -----------------------------------------------------------------------------
 -- Public can only INSERT with data validation to prevent empty spam
 DROP POLICY IF EXISTS "Prospect Leads - Insert Public" ON public.prospect_leads;
@@ -52,9 +85,22 @@ CREATE POLICY "Prospect Leads - Delete Super Admin" ON public.prospect_leads
   );
 
 -- -----------------------------------------------------------------------------
--- 3. STORAGE: MAKE TRANSACTION PHOTOS BUCKET PRIVATE & RESTRICT ACCESS
+-- 4. STORAGE: MAKE TRANSACTION PHOTOS BUCKET PRIVATE & RESTRICT ACCESS
 -- -----------------------------------------------------------------------------
--- Make bucket private (photos require authenticated access or signed URLs)
+-- Ensure bucket exists and is set to private
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'transaction-photos',
+  'transaction-photos',
+  false,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET 
+  public = false,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
 UPDATE storage.buckets 
 SET public = false 
 WHERE id = 'transaction-photos';
