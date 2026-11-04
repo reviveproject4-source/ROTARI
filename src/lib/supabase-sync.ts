@@ -16,6 +16,7 @@ export async function persistTenantToSupabase(tenant: Tenant): Promise<SyncResul
     const { error } = await supabase.from("tenants").upsert({
       id: tenant.id,
       business_name: tenant.business_name,
+      business_type: tenant.business_type || 'retail',
       logo_url: tenant.logo_url,
       address: tenant.address,
       phone_number: tenant.phone_number,
@@ -114,7 +115,13 @@ export async function persistProductServiceToSupabase(item: ProductService): Pro
       cost_price: item.cost_price,
       selling_price: item.sell_price,
       stock: item.stock || 0,
+      unit: item.unit || "pcs",
+      min_stock_alert: item.min_stock_alert || 5,
       is_dead_stock: item.is_dead_stock || false,
+      category: item.category || null,
+      duration_minutes: item.duration_minutes || 0,
+      raw_material_cost: item.raw_material_cost || 0,
+      last_sold_at: item.last_sold_at || null,
     });
     if (error) {
       console.error("Supabase Product/Service Sync Error:", error);
@@ -148,6 +155,7 @@ export async function persistExpenseToSupabase(expense: OperationalExpense): Pro
       tenant_id: expense.tenant_id,
       category: expense.category,
       amount: expense.amount,
+      payment_method: expense.payment_method || "cash",
       description: expense.title + (expense.notes ? ` - ${expense.notes}` : ""),
       date: expense.expense_date,
     });
@@ -185,15 +193,29 @@ export async function persistTransactionToSupabase(tx: Transaction): Promise<Syn
       customer_id: tx.customer_id || null,
       customer_name: tx.customer_name || null,
       customer_phone: tx.customer_phone || null,
+      branch_name: tx.branch_name || null,
+      photo_url: tx.photo_url || null,
       items: tx.items,
+      item_notes: tx.item_notes || null,
       subtotal: tx.subtotal,
+      discount_type: tx.discount_type || 'amount',
+      discount_value: tx.discount_value || 0,
+      discount_amount: tx.discount_amount || 0,
       discount: tx.discount_amount || 0,
       total_amount: tx.total_amount,
+      paid_amount: tx.paid_amount || tx.total_amount || 0,
+      remaining_amount: tx.remaining_amount || 0,
+      dp_amount: tx.dp_amount || 0,
       payment_method: tx.payment_method,
       payment_status: tx.status,
+      payment_stage: tx.payment_stage || 'full',
       order_status: tx.work_status,
       cashier_id: tx.cashier_id,
       cashier_name: tx.cashier_name,
+      estimated_completion_date: tx.estimated_completion_date || null,
+      discount_special_requested: tx.discount_special_requested || false,
+      discount_special_note: tx.discount_special_note || null,
+      discount_special_status: tx.discount_special_status || 'none',
       created_at: tx.created_at,
     });
 
@@ -305,4 +327,3 @@ export async function uploadPhotoToSupabaseStorage(
     return { success: false, error: err };
   }
 }
-

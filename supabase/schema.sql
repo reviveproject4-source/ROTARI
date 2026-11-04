@@ -1,344 +1,345 @@
 -- =============================================================================
--- ROTARI SAAS PLATFORM: MULTI-TENANT DATABASE SCHEMA & RLS AUTHORIZATION
--- Supabase Project ID: uzrqolqdqsispedbmtrl
--- Organization: kdqqayqqhsljhavsklja
+-- ROTARI / RADAR TOKO: UNIFIED MULTI-TENANT DATABASE SCHEMA & RLS AUTHORIZATION
+-- Complete Consolidated Schema (Baseline V1 + P0-P1 Enhancements)
+-- Target Project: oluzsthlxjxxpukxkcry
 -- =============================================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- -----------------------------------------------------------------------------
 -- 1. TENANTS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS tenants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_name VARCHAR(255) NOT NULL,
-    logo_url TEXT,
-    address TEXT NOT NULL,
-    phone_number VARCHAR(50) NOT NULL,
-    terms_and_conditions TEXT NOT NULL,
-    thermal_paper_size VARCHAR(20) DEFAULT '68mm',
-    theme_preference VARCHAR(20) DEFAULT 'light',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    trial_ends_at TIMESTAMPTZ NOT NULL,
-    subscription_status VARCHAR(20) DEFAULT 'trial' CHECK (subscription_status IN ('trial', 'active', 'expired')),
-    reminder_rules JSONB DEFAULT '{"dormant_days": 45, "lost_days": 90, "stagnant_service_days": 14}'::jsonb
+CREATE TABLE IF NOT EXISTS public.tenants (
+  id TEXT PRIMARY KEY,
+  business_name TEXT NOT NULL,
+  business_type TEXT DEFAULT 'retail',
+  logo_url TEXT,
+  address TEXT,
+  phone_number TEXT,
+  terms_and_conditions TEXT,
+  thermal_paper_size TEXT DEFAULT '68mm',
+  theme_preference TEXT DEFAULT 'light',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  trial_ends_at TIMESTAMPTZ,
+  subscription_status TEXT DEFAULT 'trial',
+  reminder_rules JSONB
 );
 
--- -----------------------------------------------------------------------------
--- 2. USERS / PROFILES TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    role VARCHAR(20) NOT NULL CHECK (role IN ('owner', 'cashier', 'superadmin')),
-    pin_code VARCHAR(20) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    clock_in VARCHAR(50),
-    clock_out VARCHAR(50),
-    clock_in_date VARCHAR(50),
-    clock_in_location TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
+
+-- 2. USERS TABLE
+CREATE TABLE IF NOT EXISTS public.users (
+  id TEXT PRIMARY KEY, -- Maps to Supabase Auth auth.uid() or unique user ID
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT,
+  role TEXT NOT NULL DEFAULT 'staff',
+  pin_code TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  clock_in TEXT,
+  clock_out TEXT,
+  clock_in_date TEXT,
+  clock_in_location TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Helper Function: Get Tenant ID of Current Authenticated User
+CREATE OR REPLACE FUNCTION public.get_auth_tenant_id()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT tenant_id FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
+$$;
+
+-- Helper Function: Get Role of Current Authenticated User
+CREATE OR REPLACE FUNCTION public.get_auth_user_role()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT role FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
+$$;
+
 -- 3. CUSTOMERS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS customers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    phone VARCHAR(50) NOT NULL,
-    email VARCHAR(255),
-    address TEXT,
-    notes TEXT,
-    total_orders INT DEFAULT 0,
-    total_spent NUMERIC(12, 2) DEFAULT 0,
-    last_order_at TIMESTAMPTZ DEFAULT NOW(),
-    churn_status VARCHAR(20) DEFAULT 'active' CHECK (churn_status IN ('active', 'at_risk_45', 'lost_90')),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.customers (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT,
+  address TEXT,
+  notes TEXT,
+  total_orders INT DEFAULT 0,
+  total_spent NUMERIC DEFAULT 0,
+  last_order_at TIMESTAMPTZ,
+  churn_status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+
 -- 4. PRODUCTS & SERVICES TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS products_services (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('product', 'service')),
-    cost_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    sell_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    duration_minutes INT DEFAULT 0,
-    raw_material_cost NUMERIC(12, 2) DEFAULT 0,
-    stock INT DEFAULT 0,
-    is_dead_stock BOOLEAN DEFAULT FALSE,
-    last_sold_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.products_services (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  cost_price NUMERIC DEFAULT 0,
+  selling_price NUMERIC DEFAULT 0,
+  stock INT DEFAULT 0,
+  unit TEXT,
+  min_stock_alert INT DEFAULT 5,
+  is_dead_stock BOOLEAN DEFAULT FALSE,
+  category TEXT,
+  duration_minutes INT DEFAULT 0,
+  raw_material_cost NUMERIC DEFAULT 0,
+  last_sold_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
+ALTER TABLE public.products_services ENABLE ROW LEVEL SECURITY;
+
 -- 5. OPERATIONAL EXPENSES TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS operational_expenses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    category VARCHAR(20) NOT NULL CHECK (category IN ('fixed', 'variable')),
-    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.operational_expenses (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  category TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  payment_method TEXT DEFAULT 'cash',
+  description TEXT,
+  date TEXT NOT NULL,
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
+ALTER TABLE public.operational_expenses ENABLE ROW LEVEL SECURITY;
+
 -- 6. TRANSACTIONS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    invoice_number VARCHAR(100) NOT NULL,
-    customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
-    customer_name VARCHAR(255),
-    customer_phone VARCHAR(50),
-    cashier_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    cashier_name VARCHAR(255) NOT NULL,
-    photo_url TEXT,
-    work_status VARCHAR(30) DEFAULT 'baru',
-    item_notes TEXT,
-    subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    discount_type VARCHAR(20) DEFAULT 'amount' CHECK (discount_type IN ('percent', 'amount')),
-    discount_value NUMERIC(12, 2) DEFAULT 0,
-    discount_amount NUMERIC(12, 2) DEFAULT 0,
-    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    paid_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'partially_paid', 'paid', 'cancelled')),
-    payment_method VARCHAR(20) DEFAULT 'cash' CHECK (payment_method IN ('cash', 'transfer', 'qris')),
-    payment_stage VARCHAR(20) DEFAULT 'full' CHECK (payment_stage IN ('dp', 'full')),
-    crm_attributed_log_id UUID,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  invoice_number TEXT NOT NULL,
+  customer_id TEXT REFERENCES public.customers(id),
+  customer_name TEXT,
+  customer_phone TEXT,
+  branch_name TEXT,
+  photo_url TEXT,
+  items JSONB NOT NULL,
+  item_notes TEXT,
+  subtotal NUMERIC NOT NULL,
+  discount_type TEXT DEFAULT 'amount',
+  discount_value NUMERIC DEFAULT 0,
+  discount_amount NUMERIC DEFAULT 0,
+  discount NUMERIC DEFAULT 0,
+  total_amount NUMERIC NOT NULL,
+  paid_amount NUMERIC DEFAULT 0,
+  remaining_amount NUMERIC DEFAULT 0,
+  dp_amount NUMERIC DEFAULT 0,
+  payment_method TEXT NOT NULL,
+  payment_status TEXT NOT NULL,
+  payment_stage TEXT DEFAULT 'full',
+  order_status TEXT NOT NULL,
+  cashier_id TEXT,
+  cashier_name TEXT,
+  estimated_completion_date TIMESTAMPTZ,
+  discount_special_requested BOOLEAN DEFAULT FALSE,
+  discount_special_note TEXT,
+  discount_special_status TEXT DEFAULT 'none',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
 );
 
--- -----------------------------------------------------------------------------
--- 7. TRANSACTION ITEMS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS transaction_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    transaction_id UUID NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
-    item_id UUID REFERENCES products_services(id) ON DELETE SET NULL,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('product', 'service')),
-    cost_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    unit_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    quantity INT NOT NULL DEFAULT 1,
-    gross_margin NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+
+-- 7. CRM LOGS TABLE
+CREATE TABLE IF NOT EXISTS public.crm_logs (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  customer_id TEXT REFERENCES public.customers(id),
+  customer_name TEXT,
+  phone TEXT,
+  type TEXT NOT NULL,
+  message TEXT,
+  status TEXT DEFAULT 'sent',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
--- 8. CRM LOGS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS crm_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
-    customer_name VARCHAR(255) NOT NULL,
-    customer_phone VARCHAR(50) NOT NULL,
-    cashier_name VARCHAR(255) NOT NULL,
-    type VARCHAR(30) NOT NULL CHECK (type IN ('retention_45', 'retention_90')),
-    message_content TEXT NOT NULL,
-    sent_at TIMESTAMPTZ DEFAULT NOW(),
-    is_converted BOOLEAN DEFAULT FALSE,
-    converted_transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
-    converted_amount NUMERIC(12, 2) DEFAULT 0,
-    converted_at TIMESTAMPTZ
+ALTER TABLE public.crm_logs ENABLE ROW LEVEL SECURITY;
+
+-- 8. PROMO INSTRUCTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.promo_instructions (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  target_audience TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
--- 9. PROMO INSTRUCTIONS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS promo_instructions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES products_services(id) ON DELETE SET NULL,
-    product_name VARCHAR(255) NOT NULL,
-    stock INT DEFAULT 0,
-    promo_message TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed')),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+ALTER TABLE public.promo_instructions ENABLE ROW LEVEL SECURITY;
+
+-- 9. PROSPECT LEADS TABLE
+CREATE TABLE IF NOT EXISTS public.prospect_leads (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  business_name TEXT NOT NULL,
+  status TEXT DEFAULT 'new',
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -----------------------------------------------------------------------------
--- 10. PROSPECT LEADS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS prospect_leads (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(50) NOT NULL,
-    business_name VARCHAR(255) NOT NULL,
-    status VARCHAR(20) DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'converted')),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE public.prospect_leads ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
--- ROW LEVEL SECURITY (RLS) AUTHORIZATION & TENANT ISOLATION POLICIES
+-- RLS POLICIES FOR TENANT ISOLATION
 -- =============================================================================
 
-ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products_services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE operational_expenses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transaction_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE crm_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE promo_instructions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE prospect_leads ENABLE ROW LEVEL SECURITY;
+-- POLICIES FOR TENANTS
+CREATE POLICY "Users can view own tenant" ON public.tenants
+  FOR SELECT USING (id = public.get_auth_tenant_id());
 
--- Helper Function to resolve current user tenant identity from auth.jwt() or profile
-CREATE OR REPLACE FUNCTION get_current_user_tenant_id()
-RETURNS UUID AS $$
-  SELECT tenant_id FROM users WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
+CREATE POLICY "Super admin can manage tenants" ON public.tenants
+  FOR ALL USING (auth.role() = 'service_role');
 
--- 1. Tenants Policies
-CREATE POLICY "Tenants - Read own tenant" ON tenants
-    FOR SELECT USING (
-        id = get_current_user_tenant_id() 
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+-- POLICIES FOR USERS
+CREATE POLICY "Users can view users in same tenant" ON public.users
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Tenants - Update own tenant" ON tenants
-    FOR UPDATE USING (
-        id = get_current_user_tenant_id() 
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+CREATE POLICY "Users cannot modify other tenant users or escalate roles" ON public.users
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id() AND id = auth.uid()::text)
+  WITH CHECK (tenant_id = public.get_auth_tenant_id() AND role = (SELECT role FROM public.users WHERE id = auth.uid()::text));
 
--- 2. Users / Profiles Policies
-CREATE POLICY "Users - Tenant Isolation Select" ON users
-    FOR SELECT USING (
-        tenant_id = get_current_user_tenant_id()
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+-- POLICIES FOR CUSTOMERS
+CREATE POLICY "Tenant customers SELECT policy" ON public.customers
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Users - Tenant Isolation Insert" ON users
-    FOR INSERT WITH CHECK (
-        tenant_id = get_current_user_tenant_id()
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+CREATE POLICY "Tenant customers INSERT policy" ON public.customers
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Users - Tenant Isolation Update" ON users
-    FOR UPDATE USING (
-        tenant_id = get_current_user_tenant_id()
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+CREATE POLICY "Tenant customers UPDATE policy" ON public.customers
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Users - Tenant Isolation Delete" ON users
-    FOR DELETE USING (
-        tenant_id = get_current_user_tenant_id()
-        OR (auth.jwt()->>'role') = 'superadmin'
-    );
+CREATE POLICY "Tenant customers DELETE policy" ON public.customers
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- 3. Customers Policies
-CREATE POLICY "Customers - Tenant Isolation Select" ON customers
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR PRODUCTS_SERVICES
+CREATE POLICY "Tenant products SELECT policy" ON public.products_services
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Customers - Tenant Isolation Insert" ON customers
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant products INSERT policy" ON public.products_services
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Customers - Tenant Isolation Update" ON customers
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant products UPDATE policy" ON public.products_services
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Customers - Tenant Isolation Delete" ON customers
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant products DELETE policy" ON public.products_services
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- 4. Products & Services Policies
-CREATE POLICY "Products - Tenant Isolation Select" ON products_services
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR OPERATIONAL_EXPENSES (Restricted to Owner role)
+CREATE POLICY "Tenant expenses SELECT policy" ON public.operational_expenses
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Products - Tenant Isolation Insert" ON products_services
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant expenses INSERT policy" ON public.operational_expenses
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
-CREATE POLICY "Products - Tenant Isolation Update" ON products_services
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant expenses UPDATE policy" ON public.operational_expenses
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner')
+  WITH CHECK (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
-CREATE POLICY "Products - Tenant Isolation Delete" ON products_services
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant expenses DELETE policy" ON public.operational_expenses
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
--- 5. Operational Expenses Policies
-CREATE POLICY "Expenses - Tenant Isolation Select" ON operational_expenses
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR TRANSACTIONS
+CREATE POLICY "Tenant transactions SELECT policy" ON public.transactions
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Expenses - Tenant Isolation Insert" ON operational_expenses
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant transactions INSERT policy" ON public.transactions
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Expenses - Tenant Isolation Update" ON operational_expenses
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant transactions UPDATE policy" ON public.transactions
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Expenses - Tenant Isolation Delete" ON operational_expenses
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant transactions DELETE policy" ON public.transactions
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- 6. Transactions Policies
-CREATE POLICY "Transactions - Tenant Isolation Select" ON transactions
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR CRM_LOGS
+CREATE POLICY "Tenant crm_logs SELECT policy" ON public.crm_logs
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transactions - Tenant Isolation Insert" ON transactions
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant crm_logs INSERT policy" ON public.crm_logs
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transactions - Tenant Isolation Update" ON transactions
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant crm_logs UPDATE policy" ON public.crm_logs
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transactions - Tenant Isolation Delete" ON transactions
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant crm_logs DELETE policy" ON public.crm_logs
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- 7. Transaction Items Policies
-CREATE POLICY "Transaction Items - Tenant Isolation Select" ON transaction_items
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR PROMO_INSTRUCTIONS
+CREATE POLICY "Tenant promo_instructions SELECT policy" ON public.promo_instructions
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transaction Items - Tenant Isolation Insert" ON transaction_items
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant promo_instructions INSERT policy" ON public.promo_instructions
+  FOR INSERT WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transaction Items - Tenant Isolation Update" ON transaction_items
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant promo_instructions UPDATE policy" ON public.promo_instructions
+  FOR UPDATE USING (tenant_id = public.get_auth_tenant_id()) WITH CHECK (tenant_id = public.get_auth_tenant_id());
 
-CREATE POLICY "Transaction Items - Tenant Isolation Delete" ON transaction_items
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Tenant promo_instructions DELETE policy" ON public.promo_instructions
+  FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- 8. CRM Logs Policies
-CREATE POLICY "CRM Logs - Tenant Isolation Select" ON crm_logs
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- POLICIES FOR PROSPECT LEADS (Public / Super Admin)
+CREATE POLICY "Prospect Leads - Insert Public" ON public.prospect_leads
+  FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "CRM Logs - Tenant Isolation Insert" ON crm_logs
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Prospect Leads - Select Super Admin" ON public.prospect_leads
+  FOR SELECT USING ((auth.jwt()->>'role') = 'superadmin' OR true);
 
-CREATE POLICY "CRM Logs - Tenant Isolation Update" ON crm_logs
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+CREATE POLICY "Prospect Leads - Update Super Admin" ON public.prospect_leads
+  FOR UPDATE USING ((auth.jwt()->>'role') = 'superadmin' OR true);
 
-CREATE POLICY "CRM Logs - Tenant Isolation Delete" ON crm_logs
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+-- =============================================================================
+-- STORAGE BUCKETS & POLICIES
+-- =============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'transaction-photos',
+  'transaction-photos',
+  true,
+  10485760, -- 10MB limit
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET 
+  public = true,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- 9. Promo Instructions Policies
-CREATE POLICY "Promo Instructions - Tenant Isolation Select" ON promo_instructions
-    FOR SELECT USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Read Transaction Photos'
+  ) THEN
+    CREATE POLICY "Public Read Transaction Photos" ON storage.objects
+      FOR SELECT USING (bucket_id = 'transaction-photos');
+  END IF;
 
-CREATE POLICY "Promo Instructions - Tenant Isolation Insert" ON promo_instructions
-    FOR INSERT WITH CHECK (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Upload Transaction Photos'
+  ) THEN
+    CREATE POLICY "Allow Upload Transaction Photos" ON storage.objects
+      FOR INSERT WITH CHECK (bucket_id = 'transaction-photos');
+  END IF;
 
-CREATE POLICY "Promo Instructions - Tenant Isolation Update" ON promo_instructions
-    FOR UPDATE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
-
-CREATE POLICY "Promo Instructions - Tenant Isolation Delete" ON promo_instructions
-    FOR DELETE USING (tenant_id = get_current_user_tenant_id() OR (auth.jwt()->>'role') = 'superadmin');
-
--- 10. Prospect Leads Policies (Public / Super Admin)
-CREATE POLICY "Prospect Leads - Insert Public" ON prospect_leads
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Prospect Leads - Select Super Admin" ON prospect_leads
-    FOR SELECT USING ((auth.jwt()->>'role') = 'superadmin' OR true);
-
-CREATE POLICY "Prospect Leads - Update Super Admin" ON prospect_leads
-    FOR UPDATE USING ((auth.jwt()->>'role') = 'superadmin' OR true);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Allow Manage Transaction Photos'
+  ) THEN
+    CREATE POLICY "Allow Manage Transaction Photos" ON storage.objects
+      FOR ALL USING (bucket_id = 'transaction-photos');
+  END IF;
+END $$;

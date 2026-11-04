@@ -1,6 +1,7 @@
 -- =============================================================================
 -- ROTARI MULTI-TENANT SCHEMA & ROW LEVEL SECURITY (RLS) POLICIES
 -- Target Project: oluzsthlxjxxpukxkcry
+-- Baseline Migration V1
 -- =============================================================================
 
 -- 1. TENANTS TABLE
