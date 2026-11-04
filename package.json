@@ -1,7 +1,31 @@
 {
-  "name": "rotari-app",
-  "version": "0.1.0",
-  "private": true,
+  "name": "rotari",
+  "version": "1.0.0",
+  "description": "Open Source Multi-Tenant POS, Invoicing, and Customer CRM Retention Platform",
+  "private": false,
+  "license": "MIT",
+  "author": "PT Minara Technologi Indonesia <contact@minara.co.id>",
+  "homepage": "https://github.com/reviveproject4-source/ROTARI#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reviveproject4-source/ROTARI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/reviveproject4-source/ROTARI/issues"
+  },
+  "keywords": [
+    "pos",
+    "point-of-sale",
+    "crm",
+    "customer-retention",
+    "multi-tenant",
+    "nextjs",
+    "supabase",
+    "react",
+    "tailwindcss",
+    "typescript",
+    "open-source"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

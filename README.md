@@ -1,296 +1,251 @@
-# ROTARI
+# ROTARI (Radar Toko)
 
-### Business Management System for Small Businesses & Entrepreneurs
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Storage-emerald)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC)](https://tailwindcss.com/)
 
-ROTARI is a practical business management system designed around the everyday operations of a small business.
+> **Open-Source Multi-Tenant Business Management, POS & Customer CRM Retention Platform for Small Businesses & Service Centers.**
 
-The project was originally prepared with a real small-business use case in mind. It is also used as a portfolio case study to show how I approach business analysis, workflow design, system design, and implementation.
-
-> **The application is designed around the business workflow — not around isolated features.**
+Developed and maintained by **PT Minara Technologi Indonesia**.
 
 ---
 
-## Why ROTARI?
+## Table of Contents
 
-Small businesses often have customer data, transactions, products or services, payments, stock, and customer follow-up — but these activities are often managed separately.
+1. [Overview & Philosophy](#overview--philosophy)
+2. [Core Business Flow](#core-business-flow)
+3. [Key Modules & Capabilities](#key-modules--capabilities)
+4. [Tech Stack](#tech-stack)
+5. [Prerequisites](#prerequisites)
+6. [Installation & Quickstart](#installation--quickstart)
+7. [Environment Variables](#environment-variables)
+8. [Database Setup & Migration Guide](#database-setup--migration-guide)
+9. [Storage Bucket Setup](#storage-bucket-setup)
+10. [Roles & Permissions](#roles--permissions)
+11. [Project Structure](#project-structure)
+12. [Open Source Governance & License](#open-source-governance--license)
 
-ROTARI explores how these activities can be connected so that a business transaction creates useful information for the next action.
+---
 
-The basic idea is:
+## Overview & Philosophy
 
-**Business Activity → Transaction → Information → Action → Decision**
+Small businesses and retail service shops often manage customer data, POS transactions, inventory, cashflow, and customer follow-ups using fragmented tools. 
+
+**ROTARI** connects daily transaction operations directly into actionable CRM insights:
+
+```
+Business Activity → Transaction → Information → Action → Decision
+```
+
+> **A transaction is never just a receipt — it creates data that decides the next customer interaction.**
 
 ---
 
 ## Core Business Flow
 
-A customer interaction can move through several connected parts of the business:
-
 ```
-Customer
-   ↓
-Transaction
-   ↓
-Payment / Operational Process
-   ↓
-Customer History
-   ↓
-CRM Follow-up
-   ↓
-Customer Retention / Loyalty
+Customer Visit
+     ↓
+POS Invoice (Retail Products / Repair Services)
+     ↓
+Payment & Down Payment (DP / Cash vs Bank Transfer)
+     ↓
+Work Tracking & Completion Estimate (with Camera/Gallery Photo)
+     ↓
+Automated Official WhatsApp Digital Invoice
+     ↓
+Customer Churn Detection (Active / 45-day At Risk / 90-day Lost)
+     ↓
+Cashier CRM Retention & Bulk WhatsApp Follow-up
+     ↓
+Customer Loyalty & Repeat Business
 ```
-
-Transactions can also create operational information:
-
-```
-Transaction
-   ↓
-Products / Services
-   ↓
-Stock & Cost Information
-   ↓
-Operational Insight
-   ↓
-Business Decision
-```
-
-This is an important part of the system design: **a transaction is not treated only as a record.**
 
 ---
 
-## Main Business Areas
+## Key Modules & Capabilities
 
-### 1. Transactions
+### 1. Point of Sale & Invoicing (`/pos`)
+- **Retail & Service Support:** Sell catalog products or bill repair services with technician duration estimation.
+- **Down Payment (DP) & Partial Payments:** Split invoices into DP and remaining balance with validation guards.
+- **Special Discount Workflow:** Cashiers can request special discounts requiring owner/manager review.
+- **Photo Attachments:** Directly snap or upload photos of customer items/receipts to Supabase Cloud Storage.
+- **Thermal Receipt & Digital WA:** Print 58mm/68mm/80mm thermal receipts or send formatted WhatsApp invoices with 1 click.
 
-The transaction module handles business transactions, including:
+### 2. Multi-Tenant CRM & Customer Retention (`/crm` & `/cashier/crm`)
+- **Automated Retention Alerts:** Identifies customers inactive for >30, >45, >60, or >90 days.
+- **Bulk Reminder Engine:** One-click bulk selection to trigger personalized WhatsApp retention messages.
+- **Dynamic Templates:** Customizable message templates for dormant customers, win-backs, promo broadcasts, and invoice receipts.
 
-- Invoice information
-- Customer information
-- Cashier information
-- Products and services
-- Quantity and pricing
-- Discounts
-- Down payment / full payment
-- Payment status
-- Work status
-- Transaction history
+### 3. Financial & Operational Accounting (`/expenses`)
+- **Cash vs Bank Transfer Segregation:** Track operational costs by payment method (cash drawers vs bank accounts).
+- **Fixed vs Variable Categorization:** Clean breakdown for gross margin and net profit calculation.
 
-### 2. Customer Management
+### 4. Inventory & Dead Stock Detection (`/inventory`)
+- Track stock counts, cost price (HPP), selling price, and minimum stock alerts.
+- Automatic dead-stock indicators for stagnant merchandise.
 
-Customer data is connected to transaction activity so the business can understand customer history rather than only maintain a contact list.
-
-Customer information includes activity indicators such as:
-
-- Total orders
-- Total spending
-- Last order
-- Customer status
-
-### 3. Products & Services
-
-ROTARI supports both products and services.
-
-The data model includes:
-
-- Cost price
-- Selling price
-- Service duration
-- Raw material cost
-- Stock
-- Dead-stock indication
-- Last sold information
-
-This allows operational data to be connected with transaction activity.
-
-### 4. CRM
-
-Customer activity can become a trigger for follow-up.
-
-The current design includes CRM records for customer retention activities, including dormant and lost-customer scenarios.
-
-CRM activity can also be associated with a resulting transaction, allowing the business to see whether a follow-up converted into business activity.
-
-### 5. Promotion
-
-The system includes promotion instructions related to products or services and stock conditions.
-
-This connects operational information with possible promotional action.
-
-### 6. Operational Expenses
-
-Expenses are separated into:
-
-- Fixed costs
-- Variable costs
-
-This provides a foundation for connecting operational activity with business performance.
+### 5. Multi-Tenant Architecture & Super Admin (`/super-admin`)
+- Complete data isolation per business tenant enforced via **PostgreSQL Row Level Security (RLS)**.
+- Super admin portal to provision and manage trial and subscribed tenants.
 
 ---
 
-## Multi-Tenant Design
+## Tech Stack
 
-ROTARI is designed as a multi-tenant application.
+- **Framework:** [Next.js 14](https://nextjs.org/) (App Router, Server & Client Components)
+- **Language:** [TypeScript](https://www.typescriptlang.org/) (Strict typing)
+- **Database & Auth:** [Supabase](https://supabase.com/) (PostgreSQL with Row Level Security)
+- **Storage:** Supabase Storage (`transaction-photos` bucket)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) with `next-themes` (Dark / Light mode)
+- **Icons:** [Lucide React](https://lucide.dev/)
 
-The core relationship is:
+---
 
-```
-Authenticated User
-       ↓
-User Profile
-       ↓
-Tenant / Business
-       ↓
-Business Data
+## Prerequisites
+
+- **Node.js:** v18.17.0 or higher (v20+ recommended)
+- **npm** or **pnpm**
+- A free [Supabase](https://supabase.com/) account and project
+
+---
+
+## Installation & Quickstart
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/reviveproject4-source/ROTARI.git
+cd ROTARI
 ```
 
-Business entities carry a `tenant_id`, allowing data to be associated with the correct business.
-
-The database uses **PostgreSQL with Supabase Row Level Security (RLS)** to enforce tenant-aware access policies.
-
-The project therefore treats data isolation as part of the system architecture, not only as a frontend concern.
-
----
-
-## Roles
-
-The current data model defines three roles:
-
-- **Owner**
-- **Cashier**
-- **Super Admin**
-
-The role model is intended to separate business management responsibilities from day-to-day transaction operations and platform-level administration.
-
----
-
-## Data Model
-
-The main business entities include:
-
-```
-tenants
-   │
-   ├── users
-   ├── customers
-   ├── products_services
-   ├── operational_expenses
-   ├── transactions
-   │      └── transaction_items
-   ├── crm_logs
-   └── promo_instructions
-
-prospect_leads
+### 2. Install Dependencies
+```bash
+npm install
 ```
 
-This structure reflects the business relationships behind the application rather than simply organizing tables by screen.
-
----
-
-## System Architecture
-
-The application is built as a modern web application using:
-
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Supabase
-- PostgreSQL
-- Row Level Security
-
-The architecture separates the user interface, application behavior, and database responsibilities so the system can evolve as the business requirements grow.
-
----
-
-## Authentication & Access
-
-ROTARI requires authentication before accessing the application.
-
-This is intentional.
-
-The application was designed as a business system rather than as an open public demo. The live application may therefore require an authorized account.
-
-For portfolio purposes, this repository provides the business context, workflow, data model, architecture, and implementation details without requiring public access to business data.
-
----
-
-## What This Project Demonstrates
-
-ROTARI represents the way I approach software projects as a **Business & System Analyst**.
-
-### Business Analysis
-
-- Understanding business activities
-- Identifying operational problems
-- Translating business needs into system requirements
-- Connecting business goals with system behavior
-
-### System Analysis
-
-- Business process modelling
-- Workflow design
-- Data relationships
-- Role and access design
-- Multi-tenant considerations
-- Database structure
-- System architecture
-
-### Implementation
-
-- Next.js application development
-- TypeScript
-- Supabase integration
-- PostgreSQL data modelling
-- Row Level Security
-- Frontend implementation
-- Authentication and access control
-
----
-
-## A Different Way to Look at Transactions
-
-One of the principles behind ROTARI is:
-
-> **A transaction should not simply create a record. It should create information that helps the business decide what happens next.**
-
-For example:
-
+### 3. Setup Environment Variables
+```bash
+cp .env.example .env.local
 ```
-Transaction
-   ↓
-Customer History
-   ↓
-Customer Status
-   ↓
-CRM Opportunity
-   ↓
-Follow-up
-   ↓
-New Transaction
+Fill in your Supabase project credentials in `.env.local` (see [Environment Variables](#environment-variables)).
+
+### 4. Setup Database
+Execute the database setup script in your Supabase SQL Editor (see [Database Setup & Migration Guide](#database-setup--migration-guide)).
+
+### 5. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## Environment Variables
+
+Configure `.env.local` with your Supabase credentials:
+
+```ini
+# Supabase Project API URL (Dashboard -> Project Settings -> API)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+
+# Supabase Public Anon Key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key_here
 ```
 
-This creates a feedback loop between daily operations and customer relationship management.
+---
+
+## Database Setup & Migration Guide
+
+### Option A: One-Click Setup via Supabase SQL Editor (Recommended)
+1. Go to your [Supabase Project Dashboard](https://supabase.com/dashboard).
+2. Open the **SQL Editor** tab from the left sidebar.
+3. Click **New query**, paste the entire contents of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**.
+4. All 9 tables, functions, RLS policies, and storage buckets will be initialized.
+
+### Option B: Supabase CLI Migrations
+If you use the Supabase CLI:
+```bash
+# Link project
+supabase link --project-ref your-project-id
+
+# Push migrations
+supabase db push
+```
+Migrations are organized in [`supabase/migrations/`](supabase/migrations/):
+- `20260924000000_initial_schema_and_rls.sql`: Baseline schema & RLS policies
+- `20261104000000_p0_p1_schema_enhancements.sql`: P0-P1 incremental columns & storage setup
 
 ---
 
-## Project Context
+## Storage Bucket Setup
 
-ROTARI was initially developed with a real small-business use case in mind.
+ROTARI stores transaction photos and receipt attachments in Supabase Storage. The DDL script automatically configures:
+- **Bucket ID:** `transaction-photos`
+- **Visibility:** Public (enables direct thumbnail preview on thermal slips & WhatsApp)
+- **Max File Size:** 10MB
+- **Allowed MIME types:** `image/jpeg`, `image/png`, `image/webp`, `image/gif`
 
-The project is currently also maintained as a portfolio case study to demonstrate the process of turning business requirements into a working digital system.
-
-The live application is intentionally protected by authentication.
-
-**Live application:** https://rotari.vercel.app
+If creating manually in the Supabase Dashboard:
+1. Navigate to **Storage** -> **New bucket**.
+2. Name it `transaction-photos` and toggle **Public bucket** ON.
 
 ---
 
-## About
+## Roles & Permissions
 
-I'm **Tri Raida**, a Business & System Analyst with a background in entrepreneurship, business processes, digitalization, and software development.
+| Role | Default Access | Description |
+| :--- | :--- | :--- |
+| **Owner** | Full Tenant Control | Access to Dashboard, Financial Reports, Expenses, Inventory, Staff & Settings |
+| **Cashier** | POS & Operational CRM | POS Invoice creation, Customer Management, CRM Reminders, and Daily Settings |
+| **Super Admin** | Platform Governance | Multi-tenant onboarding, tenant subscription status, and platform audit |
 
-I am particularly interested in helping **small businesses and entrepreneurs** turn operational problems into practical digital systems.
+---
 
-My approach is simple:
+## Project Structure
 
-> **Understand the business first. Then design the system.**
+```
+ROTARI/
+├── .github/                      # GitHub issue & PR templates
+│   ├── ISSUE_TEMPLATE/
+│   └── pull_request_template.md
+├── docs/                         # Additional documentation
+│   └── LICENSES.md               # Third-party license audit
+├── public/                       # Static assets & brand logos
+├── src/
+│   ├── app/                      # Next.js App Router pages
+│   │   ├── cashier/              # Cashier-specific views (CRM, Settings, Customers)
+│   │   ├── crm/                  # Owner CRM & retention analytics
+│   │   ├── employees/            # Staff & cashier management
+│   │   ├── expenses/             # Cash & transfer expense tracker
+│   │   ├── inventory/            # Inventory & stock alert manager
+│   │   ├── pos/                  # Point of sale & invoice builder
+│   │   ├── settings/             # Tenant settings & WhatsApp templates
+│   │   └── super-admin/          # Platform super admin portal
+│   ├── components/               # Reusable React components & modals
+│   ├── lib/                      # Core business logic & persistence
+│   │   ├── initial-data.ts       # Demo data & default seed
+│   │   ├── supabase.ts           # Supabase client singleton
+│   │   ├── supabase-sync.ts      # Cloud database & storage sync layer
+│   │   ├── tenant-context.tsx    # Multi-tenant state & offline cache
+│   │   └── whatsapp.ts           # WhatsApp click-to-chat generator
+│   └── types/                    # TypeScript interfaces & domain models
+├── supabase/
+│   ├── migrations/               # Supabase CLI versioned migrations
+│   └── schema.sql                # Unified full database schema
+├── CONTRIBUTING.md               # Contribution guidelines
+├── LICENSE                       # MIT License
+├── package.json
+└── SECURITY.md                   # Security & vulnerability reporting policy
+```
+
+---
+
+## Open Source Governance & License
+
+ROTARI is open-source software licensed under the **[MIT License](LICENSE)**.
+
+Copyright &copy; 2026 **PT Minara Technologi Indonesia**.
+
+You are free to use, modify, distribute, and integrate ROTARI in commercial or personal projects under the terms of the MIT License.

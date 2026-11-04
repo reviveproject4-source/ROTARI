@@ -18,8 +18,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local environment & secrets
+.env
 .env*.local
+.env.development
+.env.test
+.env.production
+.env.backup
+*.pem
+*.key
 
 # vercel
 .vercel
@@ -31,4 +38,5 @@ next-env.d.ts
 # scratch & temp
 scratch/
 supabase/.temp/
-
+.DS_Store
+Thumbs.db
