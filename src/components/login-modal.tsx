@@ -111,23 +111,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <button
               type="button"
               onClick={() => handleQuickSwitch("agus@rotari.id", "3344", "/pos")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-left transition group shadow-sm"
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 text-left transition group shadow-sm col-span-2"
             >
               <div className="font-bold text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                 <span>👨 Agus Kasir</span>
               </div>
               <span className="text-[10px] text-slate-400 block mt-0.5">Mode Kasir (POS)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickSwitch("superadmin@radartoko.id", "999999", "/super-admin")}
-              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-purple-500 text-left transition group shadow-sm"
-            >
-              <div className="font-bold text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                <span>🛡️ Super Admin</span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Platform Multi-Tenant</span>
             </button>
           </div>
         </div>

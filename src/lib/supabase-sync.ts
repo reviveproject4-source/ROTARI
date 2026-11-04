@@ -47,7 +47,8 @@ export async function persistUserToSupabase(user: User): Promise<SyncResult> {
       name: user.name,
       email: user.email,
       role: user.role,
-      pin_code: user.pin_code,
+      pin_code: user.pin_hash || user.pin_code,
+      pin_hash: user.pin_hash || null,
       is_active: user.is_active,
       clock_in: user.clock_in,
       clock_out: user.clock_out,
@@ -318,6 +319,12 @@ export async function uploadPhotoToSupabaseStorage(
     if (uploadError) {
       console.warn("Supabase Storage Upload Warning (using local/fallback):", uploadError);
       return { success: false, error: uploadError };
+    }
+
+    // Secure private bucket: generate signed URL valid for 7 days
+    const { data: signedData, error: signError } = await supabase.storage.from(bucket).createSignedUrl(filePath, 60 * 60 * 24 * 7);
+    if (!signError && signedData?.signedUrl) {
+      return { success: true, publicUrl: signedData.signedUrl };
     }
 
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath);

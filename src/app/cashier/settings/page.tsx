@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
 import { useTheme } from "next-themes";
 import { Sun, Moon, LogOut, Settings as SettingsIcon, ShieldCheck, KeyRound } from "lucide-react";
+import { verifyPin } from "@/lib/crypto";
 
 export default function CashierSettingsPage() {
   const { currentUser, tenant, updateTenant, logout, updateUserPin } = useTenant();
@@ -18,11 +19,12 @@ export default function CashierSettingsPage() {
   const [newPin, setNewPin] = useState("");
   const [pinMsg, setPinMsg] = useState<{ text: string; isError: boolean } | null>(null);
 
-  const handlePinUpdate = (e: React.FormEvent) => {
+  const handlePinUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinMsg(null);
 
-    if (oldPin !== currentUser.pin_code) {
+    const isOldPinValid = await verifyPin(oldPin, currentUser.pin_hash || currentUser.pin_code);
+    if (!isOldPinValid) {
       setPinMsg({ text: "PIN Lama Anda salah!", isError: true });
       return;
     }
@@ -32,10 +34,10 @@ export default function CashierSettingsPage() {
       return;
     }
 
-    updateUserPin(currentUser.id, newPin);
+    await updateUserPin(currentUser.id, newPin);
     setOldPin("");
     setNewPin("");
-    setPinMsg({ text: "PIN Keamanan berhasil diperbarui!", isError: false });
+    setPinMsg({ text: "PIN Keamanan berhasil diperbarui secara terenkripsi!", isError: false });
   };
 
   return (

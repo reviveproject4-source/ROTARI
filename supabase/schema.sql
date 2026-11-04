@@ -1,6 +1,6 @@
 -- =============================================================================
 -- ROTARI / RADAR TOKO: UNIFIED MULTI-TENANT DATABASE SCHEMA & RLS AUTHORIZATION
--- Complete Consolidated Setup Script (Full Tables + RLS Policies + Storage)
+-- Complete Setup Script (Full Tables + Functions + Hardened RLS + Private Storage)
 -- Target Project: oluzsthlxjxxpukxkcry
 -- =============================================================================
 
@@ -29,12 +29,13 @@ ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
 -- 2. USERS TABLE
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.users (
-  id TEXT PRIMARY KEY, -- Maps to Supabase Auth auth.uid() or unique user ID
+  id TEXT PRIMARY KEY, -- Maps to Supabase Auth auth.uid() or custom user ID
   tenant_id TEXT NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   email TEXT,
   role TEXT NOT NULL DEFAULT 'staff',
-  pin_code TEXT NOT NULL,
+  pin_code TEXT,       -- Stored as cryptographic SHA-256 hash or secure token
+  pin_hash TEXT,       -- Dedicated cryptographic hash column
   is_active BOOLEAN DEFAULT TRUE,
   clock_in TEXT,
   clock_out TEXT,
@@ -45,7 +46,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Helper Function: Get Tenant ID of Current Authenticated User
+-- Helper Function: Get Tenant ID from Auth Session or User Record
 CREATE OR REPLACE FUNCTION public.get_auth_tenant_id()
 RETURNS TEXT
 LANGUAGE sql
@@ -55,7 +56,7 @@ AS $$
   SELECT tenant_id FROM public.users WHERE id = auth.uid()::text OR email = auth.email() LIMIT 1;
 $$;
 
--- Helper Function: Get Role of Current Authenticated User
+-- Helper Function: Get Verified Role from Database or JWT
 CREATE OR REPLACE FUNCTION public.get_auth_user_role()
 RETURNS TEXT
 LANGUAGE sql
@@ -109,7 +110,7 @@ CREATE TABLE IF NOT EXISTS public.products_services (
 ALTER TABLE public.products_services ENABLE ROW LEVEL SECURITY;
 
 -- -----------------------------------------------------------------------------
--- 5. OPERATIONAL EXPENSES TABLE
+-- 5. OPERATIONAL EXPENSES TABLE (Cash vs Bank Transfer Segregation)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.operational_expenses (
   id TEXT PRIMARY KEY,
@@ -126,7 +127,7 @@ CREATE TABLE IF NOT EXISTS public.operational_expenses (
 ALTER TABLE public.operational_expenses ENABLE ROW LEVEL SECURITY;
 
 -- -----------------------------------------------------------------------------
--- 6. TRANSACTIONS TABLE
+-- 6. TRANSACTIONS TABLE (DP, Remaining, Attachments, Detailed Discounts)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.transactions (
   id TEXT PRIMARY KEY,
@@ -212,29 +213,29 @@ CREATE TABLE IF NOT EXISTS public.prospect_leads (
 ALTER TABLE public.prospect_leads ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES (IDEMPOTENT SETUP)
+-- HARDENED ROW LEVEL SECURITY (RLS) POLICIES
 -- =============================================================================
 
--- POLICIES FOR TENANTS
+-- TENANTS POLICIES
 DROP POLICY IF EXISTS "Users can view own tenant" ON public.tenants;
 CREATE POLICY "Users can view own tenant" ON public.tenants
   FOR SELECT USING (id = public.get_auth_tenant_id());
 
 DROP POLICY IF EXISTS "Super admin can manage tenants" ON public.tenants;
 CREATE POLICY "Super admin can manage tenants" ON public.tenants
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (auth.role() = 'service_role' OR public.get_auth_user_role() = 'superadmin');
 
--- POLICIES FOR USERS
+-- USERS POLICIES
 DROP POLICY IF EXISTS "Users can view users in same tenant" ON public.users;
 CREATE POLICY "Users can view users in same tenant" ON public.users
-  FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
+  FOR SELECT USING (tenant_id = public.get_auth_tenant_id() OR public.get_auth_user_role() = 'superadmin');
 
 DROP POLICY IF EXISTS "Users cannot modify other tenant users or escalate roles" ON public.users;
 CREATE POLICY "Users cannot modify other tenant users or escalate roles" ON public.users
   FOR UPDATE USING (tenant_id = public.get_auth_tenant_id() AND id = auth.uid()::text)
   WITH CHECK (tenant_id = public.get_auth_tenant_id() AND role = (SELECT role FROM public.users WHERE id = auth.uid()::text));
 
--- POLICIES FOR CUSTOMERS
+-- CUSTOMERS POLICIES
 DROP POLICY IF EXISTS "Tenant customers SELECT policy" ON public.customers;
 CREATE POLICY "Tenant customers SELECT policy" ON public.customers
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -251,7 +252,7 @@ DROP POLICY IF EXISTS "Tenant customers DELETE policy" ON public.customers;
 CREATE POLICY "Tenant customers DELETE policy" ON public.customers
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR PRODUCTS_SERVICES
+-- PRODUCTS & SERVICES POLICIES
 DROP POLICY IF EXISTS "Tenant products SELECT policy" ON public.products_services;
 CREATE POLICY "Tenant products SELECT policy" ON public.products_services
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -268,7 +269,7 @@ DROP POLICY IF EXISTS "Tenant products DELETE policy" ON public.products_service
 CREATE POLICY "Tenant products DELETE policy" ON public.products_services
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR OPERATIONAL_EXPENSES
+-- OPERATIONAL EXPENSES POLICIES (Owner Only)
 DROP POLICY IF EXISTS "Tenant expenses SELECT policy" ON public.operational_expenses;
 CREATE POLICY "Tenant expenses SELECT policy" ON public.operational_expenses
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -286,7 +287,7 @@ DROP POLICY IF EXISTS "Tenant expenses DELETE policy" ON public.operational_expe
 CREATE POLICY "Tenant expenses DELETE policy" ON public.operational_expenses
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id() AND public.get_auth_user_role() = 'owner');
 
--- POLICIES FOR TRANSACTIONS
+-- TRANSACTIONS POLICIES
 DROP POLICY IF EXISTS "Tenant transactions SELECT policy" ON public.transactions;
 CREATE POLICY "Tenant transactions SELECT policy" ON public.transactions
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -303,7 +304,7 @@ DROP POLICY IF EXISTS "Tenant transactions DELETE policy" ON public.transactions
 CREATE POLICY "Tenant transactions DELETE policy" ON public.transactions
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR CRM_LOGS
+-- CRM LOGS POLICIES
 DROP POLICY IF EXISTS "Tenant crm_logs SELECT policy" ON public.crm_logs;
 CREATE POLICY "Tenant crm_logs SELECT policy" ON public.crm_logs
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -320,7 +321,7 @@ DROP POLICY IF EXISTS "Tenant crm_logs DELETE policy" ON public.crm_logs;
 CREATE POLICY "Tenant crm_logs DELETE policy" ON public.crm_logs
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR PROMO_INSTRUCTIONS
+-- PROMO INSTRUCTIONS POLICIES
 DROP POLICY IF EXISTS "Tenant promo_instructions SELECT policy" ON public.promo_instructions;
 CREATE POLICY "Tenant promo_instructions SELECT policy" ON public.promo_instructions
   FOR SELECT USING (tenant_id = public.get_auth_tenant_id());
@@ -337,45 +338,81 @@ DROP POLICY IF EXISTS "Tenant promo_instructions DELETE policy" ON public.promo_
 CREATE POLICY "Tenant promo_instructions DELETE policy" ON public.promo_instructions
   FOR DELETE USING (tenant_id = public.get_auth_tenant_id());
 
--- POLICIES FOR PROSPECT LEADS (Public / Super Admin)
+-- PROSPECT LEADS POLICIES (STRICT SUPER ADMIN - NO 'OR TRUE')
 DROP POLICY IF EXISTS "Prospect Leads - Insert Public" ON public.prospect_leads;
 CREATE POLICY "Prospect Leads - Insert Public" ON public.prospect_leads
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT WITH CHECK (
+    length(name) >= 2 
+    AND length(email) >= 5 
+    AND length(phone) >= 8
+    AND length(business_name) >= 2
+  );
 
 DROP POLICY IF EXISTS "Prospect Leads - Select Super Admin" ON public.prospect_leads;
 CREATE POLICY "Prospect Leads - Select Super Admin" ON public.prospect_leads
-  FOR SELECT USING ((auth.jwt()->>'role') = 'superadmin' OR true);
+  FOR SELECT USING (
+    public.get_auth_user_role() = 'superadmin' 
+    OR (auth.jwt()->>'role') = 'superadmin'
+    OR (auth.jwt()->'app_metadata'->>'role') = 'superadmin'
+  );
 
 DROP POLICY IF EXISTS "Prospect Leads - Update Super Admin" ON public.prospect_leads;
 CREATE POLICY "Prospect Leads - Update Super Admin" ON public.prospect_leads
-  FOR UPDATE USING ((auth.jwt()->>'role') = 'superadmin' OR true);
+  FOR UPDATE USING (
+    public.get_auth_user_role() = 'superadmin' 
+    OR (auth.jwt()->>'role') = 'superadmin'
+    OR (auth.jwt()->'app_metadata'->>'role') = 'superadmin'
+  );
+
+DROP POLICY IF EXISTS "Prospect Leads - Delete Super Admin" ON public.prospect_leads;
+CREATE POLICY "Prospect Leads - Delete Super Admin" ON public.prospect_leads
+  FOR DELETE USING (
+    public.get_auth_user_role() = 'superadmin' 
+    OR (auth.jwt()->>'role') = 'superadmin'
+    OR (auth.jwt()->'app_metadata'->>'role') = 'superadmin'
+  );
 
 -- =============================================================================
--- STORAGE BUCKETS & ACCESS CONTROL
+-- PRIVATE STORAGE BUCKET & STRICT TENANT ACCESS CONTROL
 -- =============================================================================
--- Create bucket as public for direct image preview URL rendering in POS invoices
+-- Bucket is PRIVATE to prevent unauthorized public scraping of customer item photos
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'transaction-photos',
   'transaction-photos',
-  true,
+  false, -- PRIVATE BUCKET
   10485760, -- 10MB limit
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO UPDATE SET 
-  public = true,
+  public = false,
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Upload Policy: Permitted for authenticated users and app cashier clients
+-- Upload Policy: Authenticated users only (NO anonymous uploads)
 DROP POLICY IF EXISTS "Allow Upload Transaction Photos" ON storage.objects;
 CREATE POLICY "Allow Upload Transaction Photos" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'transaction-photos'
-    AND (auth.role() IN ('authenticated', 'anon'))
+    AND auth.role() = 'authenticated'
   );
 
--- Manage Policies: Restrict object updating/deleting to the owner or service_role
+-- View Policy: Strictly restricted to authenticated tenant members or file owner
+DROP POLICY IF EXISTS "Allow View Transaction Photos" ON storage.objects;
+CREATE POLICY "Allow View Transaction Photos" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'transaction-photos'
+    AND (
+      auth.role() = 'authenticated'
+      AND (
+        auth.uid() = owner
+        OR public.get_auth_user_role() = 'superadmin'
+        OR (storage.foldername(name))[1] = public.get_auth_tenant_id()
+      )
+    )
+  );
+
+-- Manage Policies: Edit and delete restricted to the file owner or service_role
 DROP POLICY IF EXISTS "Allow Update Transaction Photos" ON storage.objects;
 CREATE POLICY "Allow Update Transaction Photos" ON storage.objects
   FOR UPDATE USING (

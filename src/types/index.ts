@@ -48,7 +48,8 @@ export interface User {
   name: string;
   email?: string;
   role: Role;
-  pin_code: string;
+  pin_code?: string; // Legacy plaintext PIN (deprecated)
+  pin_hash?: string; // Cryptographic SHA-256 salted hash
   is_active: boolean;
   clock_in?: string;
   clock_out?: string;
@@ -168,4 +169,3 @@ export interface PromoInstruction {
   created_at: string;
   status: 'active' | 'completed';
 }
-

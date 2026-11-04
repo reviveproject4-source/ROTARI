@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
-import { Users, Plus, Trash2, Clock, ShieldCheck, UserCheck } from "lucide-react";
+import { Users, Plus, Trash2, Clock, ShieldCheck, UserCheck, Lock } from "lucide-react";
+import { hashPin } from "@/lib/crypto";
 
 export default function EmployeesPage() {
   const { users, addUser, deleteUser, toggleAttendance } = useTenant();
@@ -12,7 +13,7 @@ export default function EmployeesPage() {
   const [role, setRole] = useState<'owner' | 'cashier'>('cashier');
   const [pinCode, setPinCode] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !pinCode) return;
 
@@ -20,7 +21,7 @@ export default function EmployeesPage() {
       name,
       email,
       role,
-      pin_code: pinCode,
+      pin_hash: await hashPin(pinCode.trim()),
     });
 
     setName("");
@@ -148,7 +149,9 @@ export default function EmployeesPage() {
                     }`}>
                       {u.role.toUpperCase()}
                     </span>
-                    <span className="text-xs text-slate-400">PIN: {u.pin_code}</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> PIN Terenkripsi
+                    </span>
                   </div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{u.name}</h4>
                   {u.email && <p className="text-xs text-slate-500">{u.email}</p>}

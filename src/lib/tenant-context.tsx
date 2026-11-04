@@ -15,6 +15,7 @@ import {
   SUPER_ADMIN_USER
 } from "./initial-data";
 import { supabase } from "./supabase";
+import { verifyPinSync, hashPin, KNOWN_HASHES } from "./crypto";
 import {
   persistTenantToSupabase,
   persistUserToSupabase,
@@ -64,7 +65,7 @@ interface TenantContextType {
   setCurrentUserWithPin: (userId: string, pin: string) => boolean;
   loginWithCredentials: (identifier: string, pin: string) => { success: boolean; user?: User };
   registerDemoTenant: (data: { name: string; email: string; phone: string; businessName: string; businessType?: BusinessType; pinCode?: string }) => User;
-  updateUserPin: (userId: string, newPin: string) => void;
+  updateUserPin: (userId: string, newPin: string) => Promise<void> | void;
   toggleAttendance: (userId: string) => void;
   addUser: (user: Omit<User, "id" | "tenant_id" | "is_active">) => void;
   deleteUser: (id: string) => void;
@@ -500,12 +501,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Super Admin Isolated Check
     const matchesSuperAdmin = 
-      (cleanPin === SUPER_ADMIN_USER.pin_code) &&
+      verifyPinSync(cleanPin, SUPER_ADMIN_USER.pin_hash || SUPER_ADMIN_USER.pin_code) &&
       (!cleanId || cleanId === "superadmin" || cleanId === "superadmin@radartoko.id" || cleanId === "superadmin@rotari.id" || cleanId === "super_admin");
 
     if (matchesSuperAdmin) {
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("rotari_sa_auth", "true");
+
         sessionStorage.setItem("rotari_auth_user_id", SUPER_ADMIN_USER.id);
       }
       setCurrentUser(SUPER_ADMIN_USER);
@@ -521,8 +522,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       cleanId === "siti" ||
       cleanId === "siti@rotari.id"
     ) {
-      if (cleanPin === "1122" || cleanPin === "123456" || cleanPin === "3344" || !cleanPin) {
-        const cashierUser = users.find((u) => u.role === "cashier") || initialUsers[1];
+      const cashierUser = users.find((u) => u.role === "cashier") || initialUsers[1];
+      if (!cleanPin || verifyPinSync(cleanPin, cashierUser.pin_hash || cashierUser.pin_code)) {
+
         setCurrentUser(cashierUser);
         setActiveTenantId(cashierUser.tenant_id);
         setIsAuthenticated(true);
@@ -540,8 +542,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       cleanId === "owner@rotari.id" ||
       cleanId === "budi"
     ) {
-      if (cleanPin === "123456" || !cleanPin) {
-        const ownerUser = users.find((u) => u.role === "owner") || initialUsers[0];
+      const ownerUser = users.find((u) => u.role === "owner") || initialUsers[0];
+      if (!cleanPin || verifyPinSync(cleanPin, ownerUser.pin_hash || ownerUser.pin_code)) {
+
         setCurrentUser(ownerUser);
         setActiveTenantId(ownerUser.tenant_id);
         setIsAuthenticated(true);
@@ -555,7 +558,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     // 4. Standard Tenant User Check
     const matchedUser = users.find((u) => {
-      const matchesPin = u.pin_code === cleanPin;
+      const matchesPin = verifyPinSync(cleanPin, u.pin_hash || u.pin_code);
       if (!cleanId) return matchesPin;
       const matchesId = 
         (u.email && u.email.toLowerCase().includes(cleanId)) || 
@@ -566,6 +569,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (matchedUser) {
+      // Auto-migrate legacy plaintext PIN to pin_hash if not already hashed
+      if (!matchedUser.pin_hash && matchedUser.pin_code) {
+        hashPin(cleanPin).then((hashed) => {
+          const upgradedUser: User = { ...matchedUser, pin_hash: hashed, pin_code: undefined };
+          setUsers((prev) => prev.map((u) => (u.id === matchedUser.id ? upgradedUser : u)));
+          persistUserToSupabase(upgradedUser);
+        }).catch(() => {});
+      }
       if (matchedUser.email) {
         supabase.auth.signInWithPassword({
           email: matchedUser.email,
@@ -618,7 +629,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       name,
       email,
       role: "owner",
-      pin_code: pinCode && pinCode.trim() ? pinCode.trim() : "123456",
+      pin_hash: (pinCode && pinCode.trim() && KNOWN_HASHES[pinCode.trim()]) 
+        ? KNOWN_HASHES[pinCode.trim()] 
+        : "dfb8784acf22e3d71c5b31b8fb2b02df9203b0de4e333678bdfac480077af603",
       is_active: true,
     };
 
@@ -659,11 +672,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserPin = (userId: string, newPin: string) => {
+  const updateUserPin = async (userId: string, newPin: string) => {
+    const cleanNewPin = newPin.trim();
+    const hashed = await hashPin(cleanNewPin);
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
-          const updated = { ...u, pin_code: newPin };
+          const updated: User = { ...u, pin_hash: hashed, pin_code: undefined };
           persistUserToSupabase(updated);
           return updated;
         }
@@ -671,7 +686,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       })
     );
     if (currentUser.id === userId) {
-      const updatedCurr = { ...currentUser, pin_code: newPin };
+      const updatedCurr: User = { ...currentUser, pin_hash: hashed, pin_code: undefined };
       setCurrentUser(updatedCurr);
       persistUserToSupabase(updatedCurr);
     }

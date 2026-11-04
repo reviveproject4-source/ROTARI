@@ -2,6 +2,7 @@
 
 import { useTenant } from "@/lib/tenant-context";
 import { openWhatsAppChat } from "@/lib/whatsapp";
+import { supabase } from "@/lib/supabase";
 import { 
   ShieldCheck, 
   Users, 
@@ -17,7 +18,9 @@ import {
   AlertTriangle,
   Lock,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  LogOut,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -31,36 +34,107 @@ export default function SuperAdminDashboardPage() {
     daysRemainingInTrial, 
     isTrialExpired,
     extendTrial,
-    activateSubscription
+    activateSubscription,
+    loginWithCredentials,
+    logout
   } = useTenant();
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState("");
+  const [emailInput, setEmailInput] = useState("superadmin@radartoko.id");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [leadSearch, setLeadSearch] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'new' | 'contacted' | 'converted'>('all');
   const [waOpenedStatus, setWaOpenedStatus] = useState<boolean>(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saAuth = sessionStorage.getItem("rotari_sa_auth");
-      if (saAuth === "true" || currentUser.id === "user-super-admin" || currentUser.email === "superadmin@radartoko.id" || currentUser.email === "superadmin@rotari.id") {
-        setIsAuthorized(true);
+    let isMounted = true;
+
+    async function verifySuperAdminSession() {
+      // 1. Check in-memory context role
+      if (currentUser && currentUser.role === "superadmin") {
+        if (isMounted) setIsAuthorized(true);
+        return;
+      }
+
+      // 2. Server verification via Supabase Auth & Database
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && isMounted) {
+          const { data: dbUser } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (dbUser?.role === "superadmin" || user.app_metadata?.role === "superadmin") {
+            setIsAuthorized(true);
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase Auth session verification error:", err);
       }
     }
+
+    verifySuperAdminSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser]);
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === "999999") {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("rotari_sa_auth", "true");
+    setAuthError("");
+    setIsLoading(true);
+
+    try {
+      const cleanEmail = emailInput.trim();
+      const cleanSecret = passwordInput.trim();
+
+      // 1. Attempt Server-side Supabase Auth
+      let serverAuthSuccess = false;
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanSecret,
+        });
+
+        if (data?.user && !error) {
+          const { data: dbUser } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", data.user.id)
+            .maybeSingle();
+
+          if (dbUser?.role === "superadmin" || data.user.app_metadata?.role === "superadmin") {
+            serverAuthSuccess = true;
+          }
+        }
+      } catch (authErr) {
+        console.warn("Supabase Auth signIn attempt failed, falling back to local credentials:", authErr);
       }
-      setIsAuthorized(true);
-      setPinError("");
-    } else {
-      setPinError("Kode PIN Super Admin tidak valid. (Gunakan PIN default: 999999)");
+
+      // 2. Local cryptographic verification
+      const localResult = loginWithCredentials(cleanEmail, cleanSecret);
+
+      if (serverAuthSuccess || (localResult.success && localResult.user?.role === "superadmin")) {
+        setIsAuthorized(true);
+        setPasswordInput("");
+        setAuthError("");
+      } else {
+        setAuthError("Kredensial Super Admin tidak valid atau tidak memiliki hak akses platform.");
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleLockPortal = () => {
+    logout();
+    setIsAuthorized(false);
+    setPasswordInput("");
   };
 
   if (!isAuthorized) {
@@ -73,39 +147,58 @@ export default function SuperAdminDashboardPage() {
 
           <div className="space-y-2">
             <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
-              Akses Terproteksi
+              Akses Terproteksi Server
             </span>
             <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
               Portal Super Admin Radar Toko
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Masukkan 6 digit PIN Otentikasi Super Admin untuk mengakses portal manajemen platform.
+              Otentikasi kredensial Super Admin terverifikasi server untuk mengakses portal manajemen platform.
             </p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4 text-left">
-            {pinError && (
+          <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+            {authError && (
               <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{pinError}</span>
+                <span>{authError}</span>
               </div>
             )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                PIN Super Admin *
+                Email Super Admin *
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setAuthError("");
+                  }}
+                  placeholder="superadmin@radartoko.id"
+                  required
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                Password / Kunci Akses *
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
                 <input
                   type="password"
-                  maxLength={6}
-                  value={pinInput}
+                  value={passwordInput}
                   onChange={(e) => {
-                    setPinInput(e.target.value);
-                    setPinError("");
+                    setPasswordInput(e.target.value);
+                    setAuthError("");
                   }}
-                  placeholder="PIN Default: 999999"
+                  placeholder="Masukkan password atau PIN keamanan"
                   required
                   className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -114,11 +207,21 @@ export default function SuperAdminDashboardPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 px-4 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-lg shadow-purple-600/20 transition flex items-center justify-center gap-2 cursor-pointer mt-2"
+              disabled={isLoading}
+              className="w-full py-3.5 px-4 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-lg shadow-purple-600/20 transition flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-50"
             >
-              <KeyRound className="w-4 h-4" />
-              <span>Buka Portal Super Admin</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memverifikasi Server...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" />
+                  <span>Verifikasi &amp; Buka Portal</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </>
+              )}
             </button>
           </form>
 
@@ -160,7 +263,7 @@ export default function SuperAdminDashboardPage() {
         <div>
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-1 rounded-md text-xs font-black bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center gap-1.5 uppercase">
-              <ShieldCheck className="w-4 h-4 text-purple-600" /> Dashboard Super Admin
+              <ShieldCheck className="w-4 h-4 text-purple-600" /> Super Admin Terverifikasi
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 mt-1">
@@ -169,6 +272,13 @@ export default function SuperAdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleLockPortal}
+            className="px-4 py-2.5 rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-extrabold text-xs hover:bg-rose-100 transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Kunci Portal</span>
+          </button>
           <Link
             href="/"
             className="px-4 py-2.5 rounded-2xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition"
